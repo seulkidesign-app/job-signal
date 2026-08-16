@@ -81,17 +81,29 @@ async function fetchData(query) {
 
     return dedupe(payload.jobs.filter(job => !isExpired(job)));
   } catch (apiError) {
-    const response = await fetch('data/jobs.json', { cache: 'no-store' });
-    if (!response.ok) throw new Error('데이터를 불러오지 못했습니다.');
-    const payload = await response.json();
+    const [baseResponse, supplementResponse] = await Promise.all([
+      fetch('data/jobs.json', { cache: 'no-store' }),
+      fetch('data/verified-supplement.json', { cache: 'no-store' })
+    ]);
+    if (!baseResponse.ok || !supplementResponse.ok) throw new Error('데이터를 불러오지 못했습니다.');
+
+    const [base, supplement] = await Promise.all([
+      baseResponse.json(),
+      supplementResponse.json()
+    ]);
+
+    const verifiedPool = dedupe([
+      ...(supplement.jobs || []),
+      ...(base.jobs || [])
+    ].filter(job => !isExpired(job)));
 
     dataMode = 'snapshot';
-    generatedAt = payload.generated_at || null;
-    snapshotGeneratedAt = payload.generated_at || null;
-    snapshotTotal = Array.isArray(payload.jobs) ? payload.jobs.length : 0;
+    generatedAt = supplement.generated_at || base.generated_at || null;
+    snapshotGeneratedAt = supplement.generated_at || base.generated_at || null;
+    snapshotTotal = verifiedPool.length;
     liveMeta = {};
 
-    return dedupe(filterLocal((payload.jobs || []).filter(job => !isExpired(job)), query));
+    return filterLocal(verifiedPool, query);
   }
 }
 
@@ -161,7 +173,7 @@ function updateCoverageNote() {
       : `사람인 실시간 표본 ${Number(liveMeta.saramin_loaded).toLocaleString('ko-KR')}건`;
     els.coverageNote.textContent = `${base} + ${totalText}. 수치는 현재 불러온 표본 범위에서 계산합니다.`;
   } else {
-    els.coverageNote.textContent = `${base}을 원문 링크와 함께 제공합니다. 수치는 현재 베타 인덱스 범위에서만 계산합니다.`;
+    els.coverageNote.textContent = `${base}을 상세 링크와 함께 제공합니다. 수치는 현재 베타 인덱스 범위에서만 계산합니다.`;
   }
 }
 
@@ -330,7 +342,7 @@ function linkedinText() {
   const total = currentMatches.length;
   const junior = currentMatches.filter(isJunior).length;
   const experienced = currentMatches.filter(isExperienced).length;
-  const topSources = countBy(currentMatches, j => j.source).slice(0, 3).map(([s]) => s);
+  const topSources = countBy(currentMatches, j => j.source).slice(0, 5).map(([s]) => s);
 
   return `국내 “${q}” 채용공고를 한 번에 비교해봤습니다.\n\n현재 Job Signal 분석 표본 ${total}개\n• 신입·1년 이하 진입 가능 ${percent(junior, total)}%\n• 최소 5년 이상 요구 ${percent(experienced, total)}%\n• 확인된 원천: ${topSources.join(', ')}\n\n플랫폼마다 흩어진 채용공고를 ‘목록’이 아니라 시장 신호로 읽어보는 Job Signal을 만들고 있습니다.\n\n※ 현재는 테크·디지털 5직군 중심 베타이며, 연결된 데이터 범위 안에서 계산한 수치입니다.\n\n${location.href}\n\n#채용 #커리어 #취업 #데이터 #JobSignal`;
 }
