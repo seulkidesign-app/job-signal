@@ -1,0 +1,70 @@
+{
+  "generated_at": "2026-08-17T00:45:00+09:00",
+  "note": "공개 채용 상세 페이지에서 2026-08-17 기준 직접 검증한 보강 스냅샷",
+  "jobs": [
+    {
+      "id": "jobkorea-miridih-data-49506130",
+      "title": "[미리디] 데이터 분석가 (Data Analyst)",
+      "company": "미리디",
+      "category": "데이터",
+      "location": "서울 구로구",
+      "exp_min": 2,
+      "exp_max": null,
+      "employment": "정규직",
+      "source": "잡코리아",
+      "url": "https://www.jobkorea.co.kr/Recruit/GI_Read/49506130",
+      "posted_at": "2026-07-03",
+      "deadline": "2026-09-01",
+      "skills": ["Google Analytics", "Python", "SQL", "Tableau", "Amplitude", "databricks", "A/B테스트"],
+      "verified_at": "2026-08-17"
+    },
+    {
+      "id": "jobkorea-deepfine-pm-49450961",
+      "title": "[딥파인] 프로젝트 매니저 (물류플랫폼)",
+      "company": "딥파인",
+      "category": "PM·기획",
+      "location": "서울 용산구",
+      "exp_min": 5,
+      "exp_max": null,
+      "employment": "정규직",
+      "source": "잡코리아",
+      "url": "https://www.jobkorea.co.kr/Recruit/GI_Read/49450961",
+      "posted_at": null,
+      "deadline": "2026-08-24",
+      "skills": ["PM", "PO", "프로젝트 관리", "물류플랫폼"],
+      "verified_at": "2026-08-17"
+    },
+    {
+      "id": "jobkorea-aichemist-backend-49421173",
+      "title": "백엔드 개발자 채용",
+      "company": "에이아이케미스트로보틱스",
+      "category": "백엔드",
+      "location": "서울 강서구",
+      "exp_min": 5,
+      "exp_max": null,
+      "employment": "정규직",
+      "source": "잡코리아",
+      "url": "https://www.jobkorea.co.kr/Recruit/GI_Read/49421173",
+      "posted_at": "2026-06-22",
+      "deadline": "2026-08-21",
+      "skills": ["Backend", "Software Engineering"],
+      "verified_at": "2026-08-17"
+    },
+    {
+      "id": "saramin-kocom-backend-54338322",
+      "title": "백엔드 개발자(PHP/C++/Linux)",
+      "company": "코콤",
+      "category": "백엔드",
+      "location": "서울 강서구",
+      "exp_min": 5,
+      "exp_max": null,
+      "employment": "프리랜서",
+      "source": "사람인",
+      "url": "https://www.saramin.co.kr/zf_user/jobs/view?rec_idx=54338322",
+      "posted_at": "2026-07-01",
+      "deadline": "2026-08-30",
+      "skills": ["PHP", "C++", "Linux", "TCP/IP", "MariaDB", "CI/CD"],
+      "verified_at": "2026-08-17"
+    }
+  ]
+}
