@@ -19,6 +19,31 @@ body {
   line-height: 1.7;
 }
 
+.platform-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+  margin-top: 13px;
+}
+.platform-strip > span:not(.platform-label) {
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(255,255,255,.42);
+  color: #4f554c;
+  font-size: 11px;
+  font-weight: 600;
+}
+.platform-label {
+  margin-right: 2px;
+  color: #92978e;
+  font-family: "DM Mono", monospace;
+  font-size: 9px;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
 .quick-searches button {
   transition: transform .15s ease, background .15s ease, border-color .15s ease;
 }
@@ -92,6 +117,8 @@ body {
 @media (max-width: 600px) {
   body { word-break: normal; }
   .coverage-note { font-size: 11px; }
+  .platform-strip { gap: 6px; }
+  .platform-label { width: 100%; margin-bottom: 2px; }
   .methodology { margin-top: 52px; }
   .methodology h3 { font-size: 28px; }
   .open-arrow { opacity: 1; }
