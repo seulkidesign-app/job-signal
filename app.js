@@ -2,10 +2,17 @@ let allJobs = [];
 let currentMatches = [];
 let dataMode = 'snapshot';
 let generatedAt = null;
+let snapshotGeneratedAt = null;
+let snapshotTotal = 0;
+let liveMeta = {};
 
 const QUERY_ALIASES = {
   '프로덕트': ['프로덕트','product','pm','기획','product manager'],
   '디자인': ['디자인','designer','ux','ui','figma','product designer'],
+  '프로덕트 디자이너': ['프로덕트 디자이너','product designer','디자인','ux','ui'],
+  'pm': ['pm','프로덕트 매니저','product manager','기획'],
+  'pm·기획': ['pm','프로덕트 매니저','product manager','기획'],
+  '기획': ['기획','pm','product manager','프로덕트'],
   '마케팅': ['마케팅','marketing','브랜드','growth','ua','crm'],
   '데이터': ['데이터','data','analyst','analytics','data engineer'],
   '백엔드': ['백엔드','backend','server','api','spring','django'],
@@ -16,7 +23,7 @@ const QUERY_ALIASES = {
 const els = Object.fromEntries([
   'searchForm','queryInput','dashboard','emptyState','loadingState','resultTitle','updatedAt','sourceCount',
   'matchCount','matchContext','remoteShare','seniorShare','freshShare','skillsList','locationsList','companiesList',
-  'takeaway','copyInsight','jobsList','showingCount','toast','liveBadge','shareTop'
+  'takeaway','copyInsight','jobsList','showingCount','toast','liveBadge','shareTop','coverageNote'
 ].map(id => [id, document.getElementById(id)]));
 
 function normalize(v='') {
@@ -36,6 +43,27 @@ function withTimeout(promise, ms = 8500) {
   ]);
 }
 
+function parseStrictDate(value) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(value || ''))) return null;
+  const date = new Date(`${value}T23:59:59+09:00`);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function isExpired(job) {
+  const deadline = parseStrictDate(job.deadline);
+  return deadline ? deadline.getTime() < Date.now() : false;
+}
+
+function dedupe(jobs) {
+  const seen = new Set();
+  return jobs.filter(job => {
+    const key = normalize(`${job.company}|${job.title}`);
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 async function fetchData(query) {
   try {
     const response = await withTimeout(fetch(`/api/jobs?q=${encodeURIComponent(query)}`, {
@@ -44,16 +72,26 @@ async function fetchData(query) {
     if (!response.ok) throw new Error(`API ${response.status}`);
     const payload = await response.json();
     if (!Array.isArray(payload.jobs)) throw new Error('invalid payload');
+
     dataMode = payload.mode || 'snapshot';
     generatedAt = payload.generated_at || null;
-    return payload.jobs;
+    snapshotGeneratedAt = payload.snapshot_generated_at || null;
+    snapshotTotal = Number(payload.snapshot_total || 0);
+    liveMeta = payload.live_meta || {};
+
+    return dedupe(payload.jobs.filter(job => !isExpired(job)));
   } catch (apiError) {
     const response = await fetch('data/jobs.json', { cache: 'no-store' });
     if (!response.ok) throw new Error('데이터를 불러오지 못했습니다.');
     const payload = await response.json();
+
     dataMode = 'snapshot';
     generatedAt = payload.generated_at || null;
-    return filterLocal(payload.jobs || [], query);
+    snapshotGeneratedAt = payload.generated_at || null;
+    snapshotTotal = Array.isArray(payload.jobs) ? payload.jobs.length : 0;
+    liveMeta = {};
+
+    return dedupe(filterLocal((payload.jobs || []).filter(job => !isExpired(job)), query));
   }
 }
 
@@ -83,20 +121,21 @@ async function analyze(rawQuery, { scroll = true } = {}) {
     allJobs = jobs;
     currentMatches = jobs;
 
+    updateCoverageNote();
+    updateBadge();
+
     if (!currentMatches.length) {
       setState('empty');
-      updateBadge();
       return;
     }
 
     setState('dashboard');
-    updateBadge();
     render(query, currentMatches);
     if (scroll) window.setTimeout(() => els.dashboard.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
   } catch (error) {
     setState('empty');
     els.emptyState.querySelector('h2').textContent = '데이터를 불러오지 못했어요.';
-    els.emptyState.querySelector('p').textContent = '잠시 후 다시 시도해 주세요. 계속되면 원문 채용 플랫폼에서 직접 확인할 수 있습니다.';
+    els.emptyState.querySelector('p').textContent = '잠시 후 다시 시도해 주세요. 검색 결과를 임의의 숫자로 대체하지 않습니다.';
     els.liveBadge.innerHTML = '<span class="pulse offline"></span>DATA ERROR';
   }
 }
@@ -104,8 +143,25 @@ async function analyze(rawQuery, { scroll = true } = {}) {
 function updateBadge() {
   if (dataMode === 'live+snapshot') {
     els.liveBadge.innerHTML = '<span class="pulse"></span>LIVE + VERIFIED';
+    return;
+  }
+  const date = snapshotGeneratedAt ? new Date(snapshotGeneratedAt) : null;
+  const label = date && !Number.isNaN(date.getTime())
+    ? `${date.getMonth() + 1}.${date.getDate()} VERIFIED`
+    : 'VERIFIED BETA';
+  els.liveBadge.innerHTML = `<span class="pulse"></span>${label}`;
+}
+
+function updateCoverageNote() {
+  if (!els.coverageNote) return;
+  const base = snapshotTotal ? `검증 스냅샷 ${snapshotTotal.toLocaleString('ko-KR')}개` : '검증 스냅샷';
+  if (dataMode === 'live+snapshot' && liveMeta.saramin_loaded) {
+    const totalText = Number.isFinite(Number(liveMeta.saramin_total))
+      ? `사람인 검색결과 ${Number(liveMeta.saramin_total).toLocaleString('ko-KR')}건 중 최대 ${Number(liveMeta.sample_cap || 110)}건 표본`
+      : `사람인 실시간 표본 ${Number(liveMeta.saramin_loaded).toLocaleString('ko-KR')}건`;
+    els.coverageNote.textContent = `${base} + ${totalText}. 수치는 현재 불러온 표본 범위에서 계산합니다.`;
   } else {
-    els.liveBadge.innerHTML = '<span class="pulse"></span>VERIFIED BETA';
+    els.coverageNote.textContent = `${base}을 원문 링크와 함께 제공합니다. 수치는 현재 베타 인덱스 범위에서만 계산합니다.`;
   }
 }
 
@@ -126,10 +182,31 @@ function expLabel(job) {
   const min = job.exp_min;
   const max = job.exp_max;
   if (min == null && max == null) return '경력 정보 확인';
-  if (Number(min) === 0 && Number(max) <= 1) return '신입';
+  if (Number(min) === 0 && max != null && Number(max) <= 1) return '신입';
+  if (Number(min) === 0 && max == null) return '경력무관';
   if (min != null && max != null) return `경력 ${min}~${max}년`;
   if (min != null) return `경력 ${min}년+`;
   return `경력 ${max}년 이하`;
+}
+
+function deadlineLabel(job) {
+  const d = parseStrictDate(job.deadline);
+  if (d) return `마감 ${d.getMonth() + 1}.${d.getDate()}`;
+  return job.deadline || '마감일 확인';
+}
+
+function verificationPlatform(job) {
+  try {
+    const host = new URL(job.url).hostname;
+    if (host.includes('zighang.com')) return '직행';
+    if (host.includes('wanted.co.kr')) return '원티드';
+    if (host.includes('rememberapp.co.kr')) return '리멤버';
+    if (host.includes('jobkorea.co.kr')) return '잡코리아';
+    if (host.includes('saramin.co.kr')) return '사람인';
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 function countBy(arr, fn) {
@@ -147,17 +224,17 @@ function experienceBuckets(jobs) {
     ['신입·1년 이하', 0],
     ['2~4년', 0],
     ['5년 이상', 0],
-    ['경력 범위 넓음', 0]
+    ['경력무관·기타', 0]
   ];
+
   jobs.forEach(job => {
     const min = job.exp_min;
-    const max = job.exp_max;
     if (min == null) buckets[3][1]++;
     else if (Number(min) <= 1) buckets[0][1]++;
     else if (Number(min) <= 4) buckets[1][1]++;
     else buckets[2][1]++;
-    if (min != null && max != null && Number(max) - Number(min) >= 8) buckets[3][1]++;
   });
+
   return buckets;
 }
 
@@ -173,9 +250,15 @@ function render(query, jobs) {
   els.resultTitle.textContent = query;
   const stamp = generatedAt ? new Date(generatedAt) : new Date();
   els.updatedAt.textContent = `확인 ${stamp.toLocaleDateString('ko-KR', { month:'numeric', day:'numeric' })}`;
-  els.sourceCount.textContent = `${total.toLocaleString('ko-KR')}개 검증 공고`;
+
+  if (dataMode === 'live+snapshot' && Number.isFinite(Number(liveMeta.saramin_total))) {
+    els.sourceCount.textContent = `${total.toLocaleString('ko-KR')}개 분석 표본 · 사람인 ${Number(liveMeta.saramin_total).toLocaleString('ko-KR')}건 검색`;
+  } else {
+    els.sourceCount.textContent = `${total.toLocaleString('ko-KR')}개 검증 공고`;
+  }
+
   els.matchCount.textContent = total.toLocaleString('ko-KR');
-  els.matchContext.textContent = dataMode === 'live+snapshot' ? '실시간 사람인 + 검증 스냅샷' : '현재 베타 인덱스 기준';
+  els.matchContext.textContent = dataMode === 'live+snapshot' ? '실시간 + 검증 공고 표본' : '검증 스냅샷 기준';
   els.remoteShare.textContent = `${percent(junior, total)}%`;
   els.seniorShare.textContent = `${percent(experienced, total)}%`;
   els.freshShare.textContent = `${percent(seoul, total)}%`;
@@ -198,17 +281,23 @@ function render(query, jobs) {
   });
 
   els.showingCount.textContent = `${sorted.length}개 표시`;
-  els.jobsList.innerHTML = sorted.map(job => `
-    <a class="job-row" href="${safeUrl(job.url)}" target="_blank" rel="noreferrer">
-      <div class="job-title">${escapeHtml(job.title)}</div>
-      <div class="job-company">${escapeHtml(job.company)}</div>
-      <div class="job-location">${escapeHtml(job.location)}</div>
-      <div class="job-tags">
-        <span class="tag">${escapeHtml(job.source)}</span>
-        <span class="tag">${escapeHtml(expLabel(job))}</span>
-        <span class="tag">${escapeHtml(job.employment || '고용형태 확인')}</span>
-      </div>
-    </a>`).join('');
+  els.jobsList.innerHTML = sorted.map(job => {
+    const via = verificationPlatform(job);
+    const sourceTag = `<span class="tag">출처 ${escapeHtml(job.source || '공개공고')}</span>`;
+    const viaTag = via && via !== job.source ? `<span class="tag tag-muted">확인 ${escapeHtml(via)}</span>` : '';
+    return `
+      <a class="job-row" href="${safeUrl(job.url)}" target="_blank" rel="noreferrer">
+        <div class="job-title">${escapeHtml(job.title)}<span class="open-arrow">↗</span></div>
+        <div class="job-company">${escapeHtml(job.company)}</div>
+        <div class="job-location">${escapeHtml(job.location)}</div>
+        <div class="job-tags">
+          ${sourceTag}
+          ${viaTag}
+          <span class="tag">${escapeHtml(expLabel(job))}</span>
+          <span class="tag">${escapeHtml(deadlineLabel(job))}</span>
+        </div>
+      </a>`;
+  }).join('');
 }
 
 function buildTakeaway(query, s) {
@@ -218,7 +307,7 @@ function buildTakeaway(query, s) {
   const topSource = s.sources[0]?.[0];
 
   const bits = [];
-  bits.push(`<strong>${escapeHtml(query)}</strong> 관련 검증 공고 <strong>${s.total}개</strong>를 현재 베타 인덱스에서 확인했어요.`);
+  bits.push(`<strong>${escapeHtml(query)}</strong> 관련 공고 <strong>${s.total}개</strong>를 현재 분석 표본에서 확인했어요.`);
   if (s.junior > 0) bits.push(`신입·1년 이하 진입 가능 공고는 <strong>${juniorPct}%</strong>입니다.`);
   else bits.push('현재 표본에서는 신입·1년 이하 공고가 보이지 않습니다.');
   bits.push(`최소 5년 이상을 요구하는 공고는 <strong>${expPct}%</strong>, 서울 근무 공고는 <strong>${seoulPct}%</strong>입니다.`);
@@ -243,7 +332,7 @@ function linkedinText() {
   const experienced = currentMatches.filter(isExperienced).length;
   const topSources = countBy(currentMatches, j => j.source).slice(0, 3).map(([s]) => s);
 
-  return `국내 “${q}” 채용공고를 한 번에 비교해봤습니다.\n\n현재 Job Signal 베타 인덱스에서 검증된 공고 ${total}개\n• 신입·1년 이하 진입 가능 ${percent(junior, total)}%\n• 최소 5년 이상 요구 ${percent(experienced, total)}%\n• 확인된 원천: ${topSources.join(', ')}\n\n플랫폼마다 흩어진 채용공고를 ‘목록’이 아니라 시장 신호로 읽어보는 Job Signal을 만들고 있습니다.\n\n※ 현재는 테크·디지털 직군 중심 베타이며, 연결된 데이터 범위 안에서 계산한 수치입니다.\n\n${location.href}\n\n#채용 #커리어 #취업 #데이터 #JobSignal`;
+  return `국내 “${q}” 채용공고를 한 번에 비교해봤습니다.\n\n현재 Job Signal 분석 표본 ${total}개\n• 신입·1년 이하 진입 가능 ${percent(junior, total)}%\n• 최소 5년 이상 요구 ${percent(experienced, total)}%\n• 확인된 원천: ${topSources.join(', ')}\n\n플랫폼마다 흩어진 채용공고를 ‘목록’이 아니라 시장 신호로 읽어보는 Job Signal을 만들고 있습니다.\n\n※ 현재는 테크·디지털 5직군 중심 베타이며, 연결된 데이터 범위 안에서 계산한 수치입니다.\n\n${location.href}\n\n#채용 #커리어 #취업 #데이터 #JobSignal`;
 }
 
 function escapeHtml(value='') {
