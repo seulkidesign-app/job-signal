@@ -6,6 +6,10 @@
   <meta name="description" content="Job Signal은 흩어진 국내 채용공고를 한 번에 비교해 직무별 경력 요구, 채용 기업, 원천 플랫폼을 빠르게 보여주는 채용시장 베타 인덱스입니다." />
   <meta property="og:title" content="Job Signal — 국내 채용공고를 시장 신호로" />
   <meta property="og:description" content="플랫폼마다 흩어진 국내 채용공고를 한 번에 비교해보세요." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://seulkidesign-app.github.io/job-signal/" />
+  <meta name="twitter:card" content="summary" />
+  <link rel="canonical" href="https://seulkidesign-app.github.io/job-signal/" />
   <title>Job Signal — 국내 채용공고를 시장 신호로</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -42,9 +46,7 @@
         <button data-query="백엔드">백엔드</button>
       </div>
 
-      <p style="margin-top:18px;font-size:12px;opacity:.62;line-height:1.7">
-        VERIFIED BETA · 현재 29개 공개 공고를 원문 링크와 함께 검증해 제공합니다. 수치는 현재 연결된 베타 인덱스 범위 안에서만 계산합니다.
-      </p>
+      <p id="coverageNote" class="coverage-note">검증된 공개 공고를 원문 링크와 함께 제공합니다. 수치는 현재 베타 인덱스 범위에서만 계산합니다.</p>
     </section>
 
     <section id="dashboard" class="dashboard hidden" aria-live="polite">
@@ -62,9 +64,9 @@
 
       <div class="stat-grid">
         <article class="stat-card hero-stat">
-          <p>검색된 공고</p>
+          <p>분석 중인 공고</p>
           <strong id="matchCount">0</strong>
-          <span id="matchContext">현재 베타 인덱스 기준</span>
+          <span id="matchContext">검증 스냅샷 기준</span>
         </article>
         <article class="stat-card">
           <p>신입·1년 이하</p>
@@ -132,18 +134,28 @@
         <div class="panel-head jobs-head">
           <div>
             <p class="panel-kicker">VERIFIED LISTINGS</p>
-            <h3>원문 공고 보기</h3>
+            <h3>공고 상세 보기</h3>
           </div>
           <span id="showingCount" class="panel-note"></span>
         </div>
         <div id="jobsList" class="jobs-list"></div>
       </div>
+
+      <section class="methodology" aria-label="데이터 범위와 집계 방법">
+        <p class="panel-kicker">HOW IT WORKS</p>
+        <h3>숫자를 과장하지 않는 방식으로 만들고 있어요.</h3>
+        <div class="method-grid">
+          <div><strong>01</strong><span>공개된 채용 메타데이터만 사용하고 상세 공고로 이동할 수 있는 링크를 남깁니다.</span></div>
+          <div><strong>02</strong><span>동일 기업·동일 공고 제목은 중복으로 집계하지 않고, 마감일이 확인되는 종료 공고는 자동 제외합니다.</span></div>
+          <div><strong>03</strong><span>현재 연결된 데이터 범위를 명시하고, 전체 국내 채용시장을 대표하는 수치처럼 표현하지 않습니다.</span></div>
+        </div>
+      </section>
     </section>
 
     <section id="emptyState" class="empty-state hidden">
       <div class="empty-icon">∅</div>
       <h2>아직 베타 인덱스에 없는 검색어예요.</h2>
-      <p>현재는 ‘디자인’, ‘PM’, ‘마케팅’, ‘데이터’, ‘백엔드’를 우선 지원합니다. 범위는 계속 확장 중입니다.</p>
+      <p>현재는 ‘디자인’, ‘PM’, ‘마케팅’, ‘데이터’, ‘백엔드’를 우선 지원합니다. 결과가 없는 검색어에 임의의 숫자를 보여주지 않습니다.</p>
     </section>
 
     <section id="loadingState" class="loading-state hidden">
@@ -159,7 +171,7 @@
     </div>
     <div class="source-note">
       <span>데이터 원칙</span>
-      <span>공개 메타데이터 · 원문 링크 · 출처 표기 · 검증일 기록</span>
+      <span>공개 메타데이터 · 상세 링크 · 출처 표기 · 검증일 기록</span>
     </div>
   </footer>
 
