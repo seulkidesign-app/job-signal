@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://seulkidesign-app.github.io/job-signal/sitemap.xml
