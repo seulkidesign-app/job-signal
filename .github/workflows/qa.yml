@@ -1,0 +1,29 @@
+name: Job Signal QA
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check browser JavaScript syntax
+        run: node --check app.js
+
+      - name: Check Vercel function syntax
+        run: node --check api/jobs.js
+
+      - name: Validate jobs JSON
+        run: node -e "const fs=require('fs'); const d=JSON.parse(fs.readFileSync('data/jobs.json','utf8')); if(!Array.isArray(d.jobs)||!d.jobs.length) process.exit(1); console.log('jobs:', d.jobs.length)"
+
+      - name: Validate required frontend hooks
+        run: |
+          grep -q 'id="searchForm"' index.html
+          grep -q 'id="dashboard"' index.html
+          grep -q 'id="jobsList"' index.html
+          grep -q 'id="coverageNote"' index.html
