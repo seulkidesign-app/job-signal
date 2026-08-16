@@ -1,13 +1,13 @@
 <!doctype html>
-<html lang="en">
+<html lang="ko">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Job Signal turns live public job listings into a fast market snapshot: remote share, seniority, skills, locations and hiring companies." />
-  <title>Job Signal — See what the job market wants</title>
+  <meta name="description" content="Job Signal은 흩어진 국내 채용공고를 분석해 직무별 채용량, 경력 비중, 주요 스킬과 채용 기업을 빠르게 보여주는 채용시장 데이터 서비스입니다." />
+  <title>Job Signal — 국내 채용시장을 한눈에</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -15,65 +15,75 @@
   <header class="topbar">
     <a class="brand" href="#">JOB SIGNAL<span class="dot">.</span></a>
     <div class="top-actions">
-      <span id="liveBadge" class="live-badge"><span class="pulse"></span>LIVE DATA</span>
-      <button id="shareTop" class="ghost-btn" type="button">Share</button>
+      <span id="liveBadge" class="live-badge"><span class="pulse offline"></span>PROTOTYPE</span>
+      <button id="shareTop" class="ghost-btn" type="button">공유</button>
     </div>
   </header>
 
   <main>
     <section class="hero">
-      <p class="eyebrow">THE JOB MARKET, WITHOUT THE NOISE</p>
-      <h1>What does the market<br><span>actually want?</span></h1>
-      <p class="hero-copy">Search a role or skill. Get a fast signal from current public job listings — remote share, seniority, locations, companies and in-demand skills.</p>
+      <p class="eyebrow">대한민국 채용시장, 숫자로 보기</p>
+      <h1>지금 한국 채용시장은<br><span>무엇을 원할까?</span></h1>
+      <p class="hero-copy">직무나 스킬을 검색하면 흩어진 채용공고에서 채용량, 경력 비중, 지역, 기업, 반복해서 등장하는 스킬을 한눈에 보여줍니다.</p>
 
       <form id="searchForm" class="search-shell">
         <div class="search-icon">⌕</div>
-        <input id="queryInput" type="search" autocomplete="off" placeholder="Try ‘product designer’, ‘marketing’, ‘AI’…" aria-label="Search role or skill" />
-        <button class="search-btn" type="submit">Analyze →</button>
+        <input id="queryInput" type="search" autocomplete="off" placeholder="예: 프로덕트 디자이너, 마케팅, AI, 백엔드…" aria-label="직무 또는 스킬 검색" />
+        <button class="search-btn" type="submit">분석하기 →</button>
       </form>
-      <div class="quick-searches" aria-label="Suggested searches">
-        <button data-query="product">Product</button>
-        <button data-query="design">Design</button>
-        <button data-query="marketing">Marketing</button>
-        <button data-query="data">Data</button>
+      <div class="quick-searches" aria-label="추천 검색어">
+        <button data-query="프로덕트">프로덕트</button>
+        <button data-query="디자인">디자인</button>
+        <button data-query="마케팅">마케팅</button>
+        <button data-query="데이터">데이터</button>
         <button data-query="AI">AI</button>
-        <button data-query="sales">Sales</button>
+        <button data-query="개발">개발</button>
       </div>
+
+      <div class="quick-searches" style="margin-top:18px" aria-label="데이터 소스">
+        <span style="font-size:12px; opacity:.65; align-self:center; margin-right:4px">통합 예정</span>
+        <button type="button" disabled>사람인</button>
+        <button type="button" disabled>잡코리아</button>
+        <button type="button" disabled>원티드</button>
+        <button type="button" disabled>리멤버</button>
+        <button type="button" disabled>직행</button>
+      </div>
+      <p style="margin-top:10px;font-size:12px;opacity:.55">현재는 국내형 UX 검증을 위한 프로토타입 데이터입니다. 공식 API·허용된 데이터 연동 후 실제 수치로 전환됩니다.</p>
     </section>
 
     <section id="dashboard" class="dashboard hidden" aria-live="polite">
       <div class="results-heading">
         <div>
-          <p class="eyebrow">MARKET SNAPSHOT</p>
-          <h2 id="resultTitle">Design</h2>
+          <p class="eyebrow">채용시장 스냅샷</p>
+          <h2 id="resultTitle">프로덕트</h2>
         </div>
         <div class="results-meta">
-          <span id="updatedAt">Updated now</span>
+          <span id="updatedAt">방금 업데이트</span>
           <span>•</span>
-          <span id="sourceCount">0 listings scanned</span>
+          <span id="sourceCount">0개 공고 분석</span>
         </div>
       </div>
 
       <div class="stat-grid">
         <article class="stat-card hero-stat">
-          <p>Matching jobs</p>
+          <p>검색된 공고</p>
           <strong id="matchCount">0</strong>
-          <span id="matchContext">in the loaded dataset</span>
+          <span id="matchContext">프로토타입 데이터 기준</span>
         </article>
         <article class="stat-card">
-          <p>Remote share</p>
+          <p>원격·재택 비중</p>
           <strong id="remoteShare">0%</strong>
-          <span id="remoteContext">of matching roles</span>
+          <span>검색 결과 중</span>
         </article>
         <article class="stat-card">
-          <p>Senior roles</p>
+          <p>경력직 비중</p>
           <strong id="seniorShare">0%</strong>
-          <span>senior / lead / head</span>
+          <span>시니어·리드·팀장 포함</span>
         </article>
         <article class="stat-card">
-          <p>Fresh this week</p>
+          <p>최근 7일 공고</p>
           <strong id="freshShare">0%</strong>
-          <span>posted in last 7 days</span>
+          <span>최근 일주일 등록</span>
         </article>
       </div>
 
@@ -82,9 +92,9 @@
           <div class="panel-head">
             <div>
               <p class="panel-kicker">SIGNAL 01</p>
-              <h3>Skills showing up</h3>
+              <h3>자주 등장하는 스킬</h3>
             </div>
-            <span class="panel-note">mentions in matching listings</span>
+            <span class="panel-note">검색 공고 내 언급 비율</span>
           </div>
           <div id="skillsList" class="bars"></div>
         </article>
@@ -93,7 +103,7 @@
           <div class="panel-head">
             <div>
               <p class="panel-kicker">SIGNAL 02</p>
-              <h3>Where the jobs are</h3>
+              <h3>채용이 많은 지역</h3>
             </div>
           </div>
           <ol id="locationsList" class="rank-list"></ol>
@@ -103,7 +113,7 @@
           <div class="panel-head">
             <div>
               <p class="panel-kicker">SIGNAL 03</p>
-              <h3>Companies hiring</h3>
+              <h3>적극 채용 중인 기업</h3>
             </div>
           </div>
           <ol id="companiesList" class="rank-list"></ol>
@@ -112,20 +122,20 @@
         <article class="panel takeaway-panel">
           <div class="panel-head">
             <div>
-              <p class="panel-kicker">THE TAKEAWAY</p>
-              <h3>One-minute read</h3>
+              <p class="panel-kicker">한 줄 해석</p>
+              <h3>1분 시장 읽기</h3>
             </div>
           </div>
           <p id="takeaway" class="takeaway"></p>
-          <button id="copyInsight" class="copy-btn" type="button">Copy for LinkedIn ↗</button>
+          <button id="copyInsight" class="copy-btn" type="button">LinkedIn용으로 복사 ↗</button>
         </article>
       </div>
 
       <div class="job-list-wrap">
         <div class="panel-head jobs-head">
           <div>
-            <p class="panel-kicker">LATEST MATCHES</p>
-            <h3>Explore the listings</h3>
+            <p class="panel-kicker">검색 결과</p>
+            <h3>공고 살펴보기</h3>
           </div>
           <span id="showingCount" class="panel-note"></span>
         </div>
@@ -135,28 +145,28 @@
 
     <section id="emptyState" class="empty-state hidden">
       <div class="empty-icon">∅</div>
-      <h2>No strong signal yet.</h2>
-      <p>Try a broader keyword like “product”, “design”, “marketing”, “data”, “sales” or “AI”.</p>
+      <h2>아직 뚜렷한 신호가 없어요.</h2>
+      <p>‘프로덕트’, ‘디자인’, ‘마케팅’, ‘데이터’, ‘개발’, ‘AI’처럼 조금 더 넓은 키워드로 검색해보세요.</p>
     </section>
 
     <section id="loadingState" class="loading-state hidden">
       <div class="loader"></div>
-      <p>Reading the market…</p>
+      <p>채용시장을 읽는 중…</p>
     </section>
   </main>
 
   <footer>
     <div>
       <strong>JOB SIGNAL.</strong>
-      <p>A lightweight experiment in making public job data easier to read.</p>
+      <p>흩어진 국내 채용공고를 ‘시장 데이터’로 읽기 위한 실험입니다.</p>
     </div>
     <div class="source-note">
-      <span>Data source</span>
-      <a href="https://www.arbeitnow.com/blog/job-board-api" target="_blank" rel="noreferrer">Arbeitnow public Job Board API ↗</a>
+      <span>목표 데이터 소스</span>
+      <span>사람인 · 잡코리아 · 원티드 · 리멤버 · 직행</span>
     </div>
   </footer>
 
-  <div id="toast" class="toast" role="status">Copied</div>
+  <div id="toast" class="toast" role="status">복사했어요</div>
   <script src="app.js"></script>
 </body>
 </html>
