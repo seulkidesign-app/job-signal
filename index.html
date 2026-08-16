@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Job Signal turns live public job listings into a fast market snapshot: remote share, seniority, skills, locations and hiring companies." />
+  <title>Job Signal — See what the job market wants</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="noise"></div>
+  <header class="topbar">
+    <a class="brand" href="#">JOB SIGNAL<span class="dot">.</span></a>
+    <div class="top-actions">
+      <span id="liveBadge" class="live-badge"><span class="pulse"></span>LIVE DATA</span>
+      <button id="shareTop" class="ghost-btn" type="button">Share</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <p class="eyebrow">THE JOB MARKET, WITHOUT THE NOISE</p>
+      <h1>What does the market<br><span>actually want?</span></h1>
+      <p class="hero-copy">Search a role or skill. Get a fast signal from current public job listings — remote share, seniority, locations, companies and in-demand skills.</p>
+
+      <form id="searchForm" class="search-shell">
+        <div class="search-icon">⌕</div>
+        <input id="queryInput" type="search" autocomplete="off" placeholder="Try ‘product designer’, ‘marketing’, ‘AI’…" aria-label="Search role or skill" />
+        <button class="search-btn" type="submit">Analyze →</button>
+      </form>
+      <div class="quick-searches" aria-label="Suggested searches">
+        <button data-query="product">Product</button>
+        <button data-query="design">Design</button>
+        <button data-query="marketing">Marketing</button>
+        <button data-query="data">Data</button>
+        <button data-query="AI">AI</button>
+        <button data-query="sales">Sales</button>
+      </div>
+    </section>
+
+    <section id="dashboard" class="dashboard hidden" aria-live="polite">
+      <div class="results-heading">
+        <div>
+          <p class="eyebrow">MARKET SNAPSHOT</p>
+          <h2 id="resultTitle">Design</h2>
+        </div>
+        <div class="results-meta">
+          <span id="updatedAt">Updated now</span>
+          <span>•</span>
+          <span id="sourceCount">0 listings scanned</span>
+        </div>
+      </div>
+
+      <div class="stat-grid">
+        <article class="stat-card hero-stat">
+          <p>Matching jobs</p>
+          <strong id="matchCount">0</strong>
+          <span id="matchContext">in the loaded dataset</span>
+        </article>
+        <article class="stat-card">
+          <p>Remote share</p>
+          <strong id="remoteShare">0%</strong>
+          <span id="remoteContext">of matching roles</span>
+        </article>
+        <article class="stat-card">
+          <p>Senior roles</p>
+          <strong id="seniorShare">0%</strong>
+          <span>senior / lead / head</span>
+        </article>
+        <article class="stat-card">
+          <p>Fresh this week</p>
+          <strong id="freshShare">0%</strong>
+          <span>posted in last 7 days</span>
+        </article>
+      </div>
+
+      <div class="insight-grid">
+        <article class="panel skills-panel">
+          <div class="panel-head">
+            <div>
+              <p class="panel-kicker">SIGNAL 01</p>
+              <h3>Skills showing up</h3>
+            </div>
+            <span class="panel-note">mentions in matching listings</span>
+          </div>
+          <div id="skillsList" class="bars"></div>
+        </article>
+
+        <article class="panel">
+          <div class="panel-head">
+            <div>
+              <p class="panel-kicker">SIGNAL 02</p>
+              <h3>Where the jobs are</h3>
+            </div>
+          </div>
+          <ol id="locationsList" class="rank-list"></ol>
+        </article>
+
+        <article class="panel">
+          <div class="panel-head">
+            <div>
+              <p class="panel-kicker">SIGNAL 03</p>
+              <h3>Companies hiring</h3>
+            </div>
+          </div>
+          <ol id="companiesList" class="rank-list"></ol>
+        </article>
+
+        <article class="panel takeaway-panel">
+          <div class="panel-head">
+            <div>
+              <p class="panel-kicker">THE TAKEAWAY</p>
+              <h3>One-minute read</h3>
+            </div>
+          </div>
+          <p id="takeaway" class="takeaway"></p>
+          <button id="copyInsight" class="copy-btn" type="button">Copy for LinkedIn ↗</button>
+        </article>
+      </div>
+
+      <div class="job-list-wrap">
+        <div class="panel-head jobs-head">
+          <div>
+            <p class="panel-kicker">LATEST MATCHES</p>
+            <h3>Explore the listings</h3>
+          </div>
+          <span id="showingCount" class="panel-note"></span>
+        </div>
+        <div id="jobsList" class="jobs-list"></div>
+      </div>
+    </section>
+
+    <section id="emptyState" class="empty-state hidden">
+      <div class="empty-icon">∅</div>
+      <h2>No strong signal yet.</h2>
+      <p>Try a broader keyword like “product”, “design”, “marketing”, “data”, “sales” or “AI”.</p>
+    </section>
+
+    <section id="loadingState" class="loading-state hidden">
+      <div class="loader"></div>
+      <p>Reading the market…</p>
+    </section>
+  </main>
+
+  <footer>
+    <div>
+      <strong>JOB SIGNAL.</strong>
+      <p>A lightweight experiment in making public job data easier to read.</p>
+    </div>
+    <div class="source-note">
+      <span>Data source</span>
+      <a href="https://www.arbeitnow.com/blog/job-board-api" target="_blank" rel="noreferrer">Arbeitnow public Job Board API ↗</a>
+    </div>
+  </footer>
+
+  <div id="toast" class="toast" role="status">Copied</div>
+  <script src="app.js"></script>
+</body>
+</html>
