@@ -3,8 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Job Signal은 흩어진 국내 채용공고를 분석해 직무별 채용량, 경력 비중, 주요 스킬과 채용 기업을 빠르게 보여주는 채용시장 데이터 서비스입니다." />
-  <title>Job Signal — 국내 채용시장을 한눈에</title>
+  <meta name="description" content="Job Signal은 흩어진 국내 채용공고를 한 번에 비교해 직무별 경력 요구, 채용 기업, 원천 플랫폼을 빠르게 보여주는 채용시장 베타 인덱스입니다." />
+  <meta property="og:title" content="Job Signal — 국내 채용공고를 시장 신호로" />
+  <meta property="og:description" content="플랫폼마다 흩어진 국내 채용공고를 한 번에 비교해보세요." />
+  <title>Job Signal — 국내 채용공고를 시장 신호로</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -13,54 +15,48 @@
 <body>
   <div class="noise"></div>
   <header class="topbar">
-    <a class="brand" href="#">JOB SIGNAL<span class="dot">.</span></a>
+    <a class="brand" href="./">JOB SIGNAL<span class="dot">.</span></a>
     <div class="top-actions">
-      <span id="liveBadge" class="live-badge"><span class="pulse offline"></span>PROTOTYPE</span>
+      <span id="liveBadge" class="live-badge"><span class="pulse"></span>VERIFIED BETA</span>
       <button id="shareTop" class="ghost-btn" type="button">공유</button>
     </div>
   </header>
 
   <main>
     <section class="hero">
-      <p class="eyebrow">대한민국 채용시장, 숫자로 보기</p>
-      <h1>지금 한국 채용시장은<br><span>무엇을 원할까?</span></h1>
-      <p class="hero-copy">직무나 스킬을 검색하면 흩어진 채용공고에서 채용량, 경력 비중, 지역, 기업, 반복해서 등장하는 스킬을 한눈에 보여줍니다.</p>
+      <p class="eyebrow">국내 채용공고를, 목록이 아니라 시장 신호로</p>
+      <h1>지금 이 직무는<br><span>누구를 뽑고 있을까?</span></h1>
+      <p class="hero-copy">여러 채용 플랫폼에 흩어진 공개 공고를 비교해 경력 요구, 채용 기업, 원천 플랫폼을 한 번에 읽습니다. 베타에서는 테크·디지털 5개 직군부터 시작합니다.</p>
 
       <form id="searchForm" class="search-shell">
         <div class="search-icon">⌕</div>
-        <input id="queryInput" type="search" autocomplete="off" placeholder="예: 프로덕트 디자이너, 마케팅, AI, 백엔드…" aria-label="직무 또는 스킬 검색" />
-        <button class="search-btn" type="submit">분석하기 →</button>
+        <input id="queryInput" type="search" autocomplete="off" placeholder="예: 프로덕트 디자이너, PM, 마케팅, 데이터, 백엔드…" aria-label="직무 검색" />
+        <button class="search-btn" type="submit">시장 보기 →</button>
       </form>
+
       <div class="quick-searches" aria-label="추천 검색어">
-        <button data-query="프로덕트">프로덕트</button>
         <button data-query="디자인">디자인</button>
+        <button data-query="PM">PM·기획</button>
         <button data-query="마케팅">마케팅</button>
         <button data-query="데이터">데이터</button>
-        <button data-query="AI">AI</button>
-        <button data-query="개발">개발</button>
+        <button data-query="백엔드">백엔드</button>
       </div>
 
-      <div class="quick-searches" style="margin-top:18px" aria-label="데이터 소스">
-        <span style="font-size:12px; opacity:.65; align-self:center; margin-right:4px">통합 예정</span>
-        <button type="button" disabled>사람인</button>
-        <button type="button" disabled>잡코리아</button>
-        <button type="button" disabled>원티드</button>
-        <button type="button" disabled>리멤버</button>
-        <button type="button" disabled>직행</button>
-      </div>
-      <p style="margin-top:10px;font-size:12px;opacity:.55">현재는 국내형 UX 검증을 위한 프로토타입 데이터입니다. 공식 API·허용된 데이터 연동 후 실제 수치로 전환됩니다.</p>
+      <p style="margin-top:18px;font-size:12px;opacity:.62;line-height:1.7">
+        VERIFIED BETA · 현재 29개 공개 공고를 원문 링크와 함께 검증해 제공합니다. 수치는 현재 연결된 베타 인덱스 범위 안에서만 계산합니다.
+      </p>
     </section>
 
     <section id="dashboard" class="dashboard hidden" aria-live="polite">
       <div class="results-heading">
         <div>
           <p class="eyebrow">채용시장 스냅샷</p>
-          <h2 id="resultTitle">프로덕트</h2>
+          <h2 id="resultTitle">디자인</h2>
         </div>
         <div class="results-meta">
-          <span id="updatedAt">방금 업데이트</span>
+          <span id="updatedAt">방금 확인</span>
           <span>•</span>
-          <span id="sourceCount">0개 공고 분석</span>
+          <span id="sourceCount">0개 검증 공고</span>
         </div>
       </div>
 
@@ -68,22 +64,22 @@
         <article class="stat-card hero-stat">
           <p>검색된 공고</p>
           <strong id="matchCount">0</strong>
-          <span id="matchContext">프로토타입 데이터 기준</span>
+          <span id="matchContext">현재 베타 인덱스 기준</span>
         </article>
         <article class="stat-card">
-          <p>원격·재택 비중</p>
+          <p>신입·1년 이하</p>
           <strong id="remoteShare">0%</strong>
-          <span>검색 결과 중</span>
+          <span>진입 가능한 공고</span>
         </article>
         <article class="stat-card">
-          <p>경력직 비중</p>
+          <p>5년 이상</p>
           <strong id="seniorShare">0%</strong>
-          <span>시니어·리드·팀장 포함</span>
+          <span>최소 요구 경력 기준</span>
         </article>
         <article class="stat-card">
-          <p>최근 7일 공고</p>
+          <p>서울 근무</p>
           <strong id="freshShare">0%</strong>
-          <span>최근 일주일 등록</span>
+          <span>검색 결과 중</span>
         </article>
       </div>
 
@@ -92,9 +88,9 @@
           <div class="panel-head">
             <div>
               <p class="panel-kicker">SIGNAL 01</p>
-              <h3>자주 등장하는 스킬</h3>
+              <h3>경력 요구 분포</h3>
             </div>
-            <span class="panel-note">검색 공고 내 언급 비율</span>
+            <span class="panel-note">최소 경력 기준</span>
           </div>
           <div id="skillsList" class="bars"></div>
         </article>
@@ -103,8 +99,9 @@
           <div class="panel-head">
             <div>
               <p class="panel-kicker">SIGNAL 02</p>
-              <h3>채용이 많은 지역</h3>
+              <h3>원천 플랫폼</h3>
             </div>
+            <span class="panel-note">공고 메타데이터 기준</span>
           </div>
           <ol id="locationsList" class="rank-list"></ol>
         </article>
@@ -113,7 +110,7 @@
           <div class="panel-head">
             <div>
               <p class="panel-kicker">SIGNAL 03</p>
-              <h3>적극 채용 중인 기업</h3>
+              <h3>현재 채용 기업</h3>
             </div>
           </div>
           <ol id="companiesList" class="rank-list"></ol>
@@ -134,8 +131,8 @@
       <div class="job-list-wrap">
         <div class="panel-head jobs-head">
           <div>
-            <p class="panel-kicker">검색 결과</p>
-            <h3>공고 살펴보기</h3>
+            <p class="panel-kicker">VERIFIED LISTINGS</p>
+            <h3>원문 공고 보기</h3>
           </div>
           <span id="showingCount" class="panel-note"></span>
         </div>
@@ -145,24 +142,24 @@
 
     <section id="emptyState" class="empty-state hidden">
       <div class="empty-icon">∅</div>
-      <h2>아직 뚜렷한 신호가 없어요.</h2>
-      <p>‘프로덕트’, ‘디자인’, ‘마케팅’, ‘데이터’, ‘개발’, ‘AI’처럼 조금 더 넓은 키워드로 검색해보세요.</p>
+      <h2>아직 베타 인덱스에 없는 검색어예요.</h2>
+      <p>현재는 ‘디자인’, ‘PM’, ‘마케팅’, ‘데이터’, ‘백엔드’를 우선 지원합니다. 범위는 계속 확장 중입니다.</p>
     </section>
 
     <section id="loadingState" class="loading-state hidden">
       <div class="loader"></div>
-      <p>채용시장을 읽는 중…</p>
+      <p>공고를 비교하는 중…</p>
     </section>
   </main>
 
   <footer>
     <div>
       <strong>JOB SIGNAL.</strong>
-      <p>흩어진 국내 채용공고를 ‘시장 데이터’로 읽기 위한 실험입니다.</p>
+      <p>플랫폼마다 흩어진 국내 채용공고를 시장 데이터로 읽는 베타 인덱스.</p>
     </div>
     <div class="source-note">
-      <span>목표 데이터 소스</span>
-      <span>사람인 · 잡코리아 · 원티드 · 리멤버 · 직행</span>
+      <span>데이터 원칙</span>
+      <span>공개 메타데이터 · 원문 링크 · 출처 표기 · 검증일 기록</span>
     </div>
   </footer>
 
