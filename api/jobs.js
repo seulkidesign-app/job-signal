@@ -183,6 +183,7 @@ module.exports = async function handler(req, res) {
     mode: saramin.jobs.length ? 'live+snapshot' : 'snapshot',
     generated_at: new Date().toISOString(),
     snapshot_generated_at: snapshot.generated_at,
+    snapshot_total: snapshot.jobs.length,
     coverage: snapshot.coverage,
     jobs,
     live_meta: {
