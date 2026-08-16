@@ -1,4 +1,5 @@
 const snapshot = require('../data/jobs.json');
+const supplement = require('../data/verified-supplement.json');
 
 const LIVE_QUERY_MAP = {
   '디자인': '프로덕트 디자이너',
@@ -174,7 +175,8 @@ module.exports = async function handler(req, res) {
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
 
   const query = String(req.query?.q || '디자인').trim().slice(0, 80);
-  const snapshotMatches = filterSnapshot(snapshot.jobs, query);
+  const verifiedPool = dedupe([...(supplement.jobs || []), ...(snapshot.jobs || [])]);
+  const snapshotMatches = filterSnapshot(verifiedPool, query);
   const saramin = await fetchSaramin(query);
   const jobs = dedupe([...saramin.jobs, ...snapshotMatches]);
 
@@ -182,8 +184,8 @@ module.exports = async function handler(req, res) {
     query,
     mode: saramin.jobs.length ? 'live+snapshot' : 'snapshot',
     generated_at: new Date().toISOString(),
-    snapshot_generated_at: snapshot.generated_at,
-    snapshot_total: snapshot.jobs.length,
+    snapshot_generated_at: supplement.generated_at || snapshot.generated_at,
+    snapshot_total: verifiedPool.length,
     coverage: snapshot.coverage,
     jobs,
     live_meta: {
@@ -194,7 +196,7 @@ module.exports = async function handler(req, res) {
     },
     source_status: {
       saramin: saramin.enabled ? (saramin.error ? 'error' : (saramin.query ? 'live' : 'unsupported_query')) : 'needs_key',
-      snapshot: 'live'
+      verified_snapshot: 'live'
     },
     warning: saramin.error || null
   });
