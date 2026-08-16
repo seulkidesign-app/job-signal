@@ -1,27 +1,35 @@
 # Job Signal
 
-A lightweight, static MVP that turns current public job listings into a fast market snapshot.
+국내 채용공고를 단순히 모아 보여주는 대신, 현재 채용시장의 **경력 요구·채용 기업·원천 플랫폼**을 빠르게 읽을 수 있게 만드는 베타 인덱스입니다.
 
-## What it does
-- Fetches current jobs from the Arbeitnow Germany and UK public Job Board APIs.
-- Searches across title, company, location, tags and description.
-- Calculates matching listings, remote share, seniority, freshness, recurring skills, locations and hiring companies.
-- Generates a one-click LinkedIn summary.
-- Falls back to clearly labeled demo data if a public API cannot be reached from the browser.
+## Public beta
 
-## Run locally
-Because browsers can be stricter with `file://` pages, serve the folder with any static server:
+- Website: https://seulkidesign-app.github.io/job-signal/
+- 현재 우선 지원 직군: 디자인 / PM·기획 / 마케팅 / 데이터 / 백엔드
+- 검증 스냅샷은 공고 상세 링크, 출처, 경력, 고용형태, 검증일을 함께 저장합니다.
+- 결과가 없는 검색어에 가짜 데이터나 임의의 숫자를 표시하지 않습니다.
+- 날짜로 마감이 확인되는 공고는 클라이언트에서 자동 제외합니다.
+
+## Data architecture
+
+`data/jobs.json`은 공개 페이지에서 확인한 베타 스냅샷입니다. Vercel에서는 `/api/jobs`가 먼저 호출되고, 공식 API 연결이 없는 경우에도 이 스냅샷으로 정상 동작합니다. GitHub Pages처럼 서버리스 API가 없는 환경에서는 프론트엔드가 `data/jobs.json`으로 자동 폴백합니다.
+
+현재 서버 어댑터는 사람인 공식 채용정보 API 연결을 지원하며 `SARAMIN_ACCESS_KEY` 환경변수가 설정되면 실시간 결과와 검증 스냅샷을 중복 제거 후 합칩니다. API 키는 브라우저 코드에 포함하지 않습니다.
+
+## Data principles
+
+1. 현재 연결된 데이터 범위를 화면에 명시합니다.
+2. 전체 국내 채용시장을 대표하는 수치처럼 과장하지 않습니다.
+3. 동일 기업·동일 공고 제목은 중복 집계하지 않습니다.
+4. 자동 수집은 공식 API나 명시적으로 허용된 경로를 우선합니다.
+5. 외부 플랫폼의 이용정책을 우회하는 크롤링을 기본 데이터 전략으로 사용하지 않습니다.
+
+## Local run
+
+정적 화면만 확인하려면:
 
 ```bash
 python3 -m http.server 8000
 ```
 
-Then open `http://localhost:8000`.
-
-## Deploy
-This is a static site. You can deploy the folder directly to Vercel, Netlify, GitHub Pages or Cloudflare Pages.
-
-## Data scope
-The MVP does **not** claim to represent the entire job market. Metrics are computed only from the public listings successfully loaded into the page. The UI labels the number of listings scanned.
-
-Data source: Arbeitnow public Job Board API.
+Vercel Functions까지 포함해 확인하려면 Vercel 개발 환경에서 실행해야 합니다.
