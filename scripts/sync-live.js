@@ -5,6 +5,7 @@ const ROOT = process.cwd();
 const JOBS_PATH = path.join(ROOT, 'data', 'jobs.json');
 const SUPPLEMENT_PATH = path.join(ROOT, 'data', 'verified-supplement.json');
 const HISTORY_PATH = path.join(ROOT, 'data', 'history.json');
+const SOURCES_PATH = path.join(ROOT, 'data', 'sources.json');
 
 const SEARCHES = [
   { key: 'design', label: '디자인', keywords: '프로덕트 디자이너' },
@@ -202,6 +203,24 @@ function appendHistory(jobs, sourceTotals) {
   writeJson(HISTORY_PATH, history);
 }
 
+function markSaraminLive(now) {
+  const data = readJson(SOURCES_PATH, { sources: [] });
+  if (!Array.isArray(data.sources)) data.sources = [];
+  const existing = data.sources.find(source => source.name === '사람인');
+  const next = {
+    name: '사람인',
+    mode: 'official_api',
+    automation: '30min',
+    status: 'live',
+    note: '공식 채용정보 API를 30분 간격으로 자동 동기화',
+    last_success_at: now
+  };
+  if (existing) Object.assign(existing, next);
+  else data.sources.unshift(next);
+  data.updated_at = now;
+  writeJson(SOURCES_PATH, data);
+}
+
 async function main() {
   const accessKey = process.env.SARAMIN_ACCESS_KEY;
   if (!accessKey) {
@@ -234,6 +253,7 @@ async function main() {
 
   writeJson(JOBS_PATH, payload);
   appendHistory(jobs, sourceTotals);
+  markSaraminLive(now);
   console.log(`Synced ${jobs.length} active jobs at ${now}`);
   if (failed.length) console.warn(`${failed.length} of ${settled.length} market queries failed; successful markets were still updated.`);
 }
