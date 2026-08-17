@@ -37,12 +37,12 @@ jobs:
 
       - name: Commit updated market snapshot
         run: |
-          if git diff --quiet -- data/jobs.json data/history.json; then
+          if git diff --quiet -- data/jobs.json data/history.json data/sources.json; then
             echo "No market data changes to commit."
             exit 0
           fi
           git config user.name "job-signal-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add data/jobs.json data/history.json
+          git add data/jobs.json data/history.json data/sources.json
           git commit -m "data: refresh live job market snapshot"
           git push
