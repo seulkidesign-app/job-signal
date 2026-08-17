@@ -10,6 +10,8 @@ let sourceTotals = {};
 let liveSources = [];
 let syncIntervalMinutes = null;
 
+const IS_GITHUB_PAGES = location.hostname.endsWith('github.io');
+
 const QUERY_ALIASES = {
   '프로덕트': ['프로덕트','product','pm','기획','product manager'],
   '디자인': ['디자인','designer','ux','ui','figma','product designer'],
@@ -95,7 +97,35 @@ function applyDatasetMeta(payload={}) {
   syncIntervalMinutes = Number(payload.sync_interval_minutes || 0) || null;
 }
 
+async function fetchStaticData(query) {
+  const [baseResponse, supplementResponse] = await Promise.all([
+    fetch('data/jobs.json', { cache: 'no-store' }),
+    fetch('data/verified-supplement.json', { cache: 'no-store' })
+  ]);
+  if (!baseResponse.ok || !supplementResponse.ok) throw new Error('데이터를 불러오지 못했습니다.');
+
+  const [base, supplement] = await Promise.all([
+    baseResponse.json(),
+    supplementResponse.json()
+  ]);
+
+  const verifiedPool = dedupe([
+    ...(base.jobs || []),
+    ...(supplement.jobs || [])
+  ].filter(job => !isExpired(job)));
+
+  applyDatasetMeta(base);
+  dataMode = liveSources.length ? 'scheduled-live' : 'snapshot';
+  snapshotGeneratedAt = supplement.generated_at || base.generated_at || null;
+  snapshotTotal = verifiedPool.length;
+  liveMeta = {};
+
+  return filterLocal(verifiedPool, query);
+}
+
 async function fetchData(query) {
+  if (IS_GITHUB_PAGES) return fetchStaticData(query);
+
   try {
     const response = await withTimeout(fetch(`/api/jobs?q=${encodeURIComponent(query)}`, {
       headers: { Accept: 'application/json' }
@@ -104,43 +134,20 @@ async function fetchData(query) {
     const payload = await response.json();
     if (!Array.isArray(payload.jobs)) throw new Error('invalid payload');
 
-    dataMode = payload.mode || 'snapshot';
-    generatedAt = payload.generated_at || null;
+    applyDatasetMeta(payload);
+    dataMode = payload.mode || (liveSources.length ? 'scheduled-live' : 'snapshot');
     snapshotGeneratedAt = payload.snapshot_generated_at || null;
     snapshotTotal = Number(payload.snapshot_total || 0);
     liveMeta = payload.live_meta || {};
-    datasetMeta = payload;
-    liveSources = dataMode === 'live+snapshot' ? ['사람인'] : [];
-    syncIntervalMinutes = null;
-    sourceTotals = {};
+
     const key = marketKeyForQuery(query);
-    if (key && Number.isFinite(Number(liveMeta.saramin_total))) sourceTotals[key] = Number(liveMeta.saramin_total);
+    if (key && !Number.isFinite(Number(sourceTotals[key])) && Number.isFinite(Number(liveMeta.saramin_total))) {
+      sourceTotals[key] = Number(liveMeta.saramin_total);
+    }
 
     return dedupe(payload.jobs.filter(job => !isExpired(job)));
   } catch (apiError) {
-    const [baseResponse, supplementResponse] = await Promise.all([
-      fetch('data/jobs.json', { cache: 'no-store' }),
-      fetch('data/verified-supplement.json', { cache: 'no-store' })
-    ]);
-    if (!baseResponse.ok || !supplementResponse.ok) throw new Error('데이터를 불러오지 못했습니다.');
-
-    const [base, supplement] = await Promise.all([
-      baseResponse.json(),
-      supplementResponse.json()
-    ]);
-
-    const verifiedPool = dedupe([
-      ...(base.jobs || []),
-      ...(supplement.jobs || [])
-    ].filter(job => !isExpired(job)));
-
-    applyDatasetMeta(base);
-    dataMode = liveSources.length ? 'scheduled-live' : 'snapshot';
-    snapshotGeneratedAt = supplement.generated_at || base.generated_at || null;
-    snapshotTotal = verifiedPool.length;
-    liveMeta = {};
-
-    return filterLocal(verifiedPool, query);
+    return fetchStaticData(query);
   }
 }
 
