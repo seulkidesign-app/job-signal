@@ -27,13 +27,18 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Validate sync script
-        run: node --check scripts/sync-live.js
+      - name: Validate automation scripts
+        run: |
+          node --check scripts/sync-live.js
+          node --check scripts/validate-production.js
 
       - name: Sync active market data
         env:
           SARAMIN_ACCESS_KEY: ${{ secrets.SARAMIN_ACCESS_KEY }}
         run: node scripts/sync-live.js
+
+      - name: Validate snapshot before publish
+        run: node scripts/validate-production.js
 
       - name: Commit updated market snapshot
         run: |
