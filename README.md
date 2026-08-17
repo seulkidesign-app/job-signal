@@ -45,8 +45,8 @@ GitHub Pages 자동 재배포
 ### 현재 데이터 상태
 
 - **사람인**: 공식 채용정보 API 어댑터 구현 완료. `SARAMIN_ACCESS_KEY`가 설정되면 30분 단위 자동 동기화.
-- **잡코리아**: 공식 사이트에서 Open API 메뉴를 확인. Job Signal의 자동 집계·분석 용도 허용 범위와 신청 조건을 확인한 뒤 LIVE 전환.
-- **원티드**: 현재 정책 문서에서 Open API 신청 절차가 확인됨. 승인된 이용 범위를 확인한 뒤 LIVE 전환.
+- **잡코리아**: 공식 사이트의 Open API 경로는 확인. Job Signal의 자동 집계·분석 용도 허용 범위와 신청 조건을 확인한 뒤 LIVE 전환.
+- **원티드**: 공식 OpenAPI 신청 페이지 확인. `Jobs / Search / Stat` 권한을 우선 신청하고 승인된 명세를 기준으로 LIVE 전환.
 - **리멤버 / 직행**: Job Signal 용도의 공식 자동 연동 경로가 확인되기 전에는 실시간이라고 표시하지 않습니다.
 - 자동 연결이 없는 플랫폼은 최근 직접 검증한 공개 공고만 보강 데이터로 사용합니다.
 
@@ -56,6 +56,8 @@ GitHub Pages 자동 재배포
 
 - [Live API 연결 가이드](docs/API_CONNECT.md)
 - [사람인 API 신청용 문구](docs/SARAMIN_APPLICATION.md)
+- [원티드 OpenAPI 신청 메모](docs/WANTED_APPLICATION.md)
+- [잡코리아 공식 연동 문의 메모](docs/JOBKOREA_INTEGRATION.md)
 - 환경변수 예시: `.env.example`
 
 ## 시장 변화 추적
@@ -90,6 +92,7 @@ GitHub Pages 자동 재배포
 - 핵심 UI hook 존재 여부
 - API fallback smoke test
 - API key가 없는 환경에서 sync가 안전하게 종료되는지
+- mock API 성공 시 LIVE source 상태가 자동 전환되는지
 
 ## Local run
 
