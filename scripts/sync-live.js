@@ -129,6 +129,8 @@ function mapSaramin(job, search) {
     deadline: closeLabel(job['close-type'], job['expiration-date']),
     skills: keywords,
     salary: text(job.salary) || null,
+    read_count: toNumber(job['read-cnt']),
+    apply_count: toNumber(job['apply-cnt']),
     verified_at: new Date().toISOString().slice(0, 10)
   };
 }
@@ -140,7 +142,7 @@ async function fetchSaramin(search, accessKey) {
     count: '110',
     start: '0',
     sort: 'ud',
-    fields: 'posting-date,expiration-date'
+    fields: 'posting-date,expiration-date,count'
   });
 
   const controller = new AbortController();
