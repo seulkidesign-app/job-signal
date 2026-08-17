@@ -132,18 +132,21 @@
           <p class="panel-kicker">MARKET OVERVIEW</p>
           <h2>국내 채용시장 한눈에 보기</h2>
         </div>
-        <span>${hasLive ? '자동 동기화 데이터' : '현재 검증 데이터'} 기준</span>
+        <span>${hasLive ? '공고 수는 API 검색 총량 · 비율은 분석 표본 기준' : '현재 검증 데이터 기준'}</span>
       </div>
       <div class="overview-grid">
         ${MARKETS.map(market => {
           const rows = jobsForMarket(market);
           const junior = rows.filter(job => job.exp_min != null && Number(job.exp_min) <= 1).length;
           const senior = rows.filter(job => job.exp_min != null && Number(job.exp_min) >= 5).length;
+          const sourceTotal = Number(datasetMeta?.source_totals?.[market.key]);
+          const totalFound = hasLive && Number.isFinite(sourceTotal) ? sourceTotal : rows.length;
+          const sampleNote = hasLive && totalFound !== rows.length ? ` · 표본 ${rows.length.toLocaleString('ko-KR')}개` : '';
           return `
             <a class="overview-card" href="?q=${encodeURIComponent(market.query)}">
               <span>${market.label}</span>
-              <strong>${rows.length.toLocaleString('ko-KR')}</strong>
-              <small>신입 ${percent(junior, rows.length)}% · 5년+ ${percent(senior, rows.length)}%</small>
+              <strong>${totalFound.toLocaleString('ko-KR')}</strong>
+              <small>신입 ${percent(junior, rows.length)}% · 5년+ ${percent(senior, rows.length)}%${sampleNote}</small>
               <em>자세히 보기 →</em>
             </a>`;
         }).join('')}
