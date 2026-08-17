@@ -67,7 +67,6 @@ function dedupe(jobs) {
       map.set(key, job);
       continue;
     }
-    // Prefer a direct official API record when the same listing is mirrored elsewhere.
     if (job.source === '사람인' && current.source !== '사람인') map.set(key, job);
   }
   return [...map.values()];
@@ -170,7 +169,7 @@ function pct(n, d) {
   return d ? Math.round((n / d) * 1000) / 10 : 0;
 }
 
-function summarize(jobs) {
+function summarize(jobs, sourceTotals = {}) {
   const result = {};
   for (const search of SEARCHES) {
     const rows = jobs.filter(job => job.market_key === search.key || job.category === search.label);
@@ -179,6 +178,7 @@ function summarize(jobs) {
     result[search.key] = {
       label: search.label,
       count: rows.length,
+      total_found: Number.isFinite(Number(sourceTotals[search.key])) ? Number(sourceTotals[search.key]) : null,
       junior_share: pct(junior, rows.length),
       senior5_share: pct(senior, rows.length)
     };
@@ -193,11 +193,10 @@ function appendHistory(jobs, sourceTotals) {
   snapshots.push({
     at: now,
     active_jobs: jobs.length,
-    markets: summarize(jobs),
+    markets: summarize(jobs, sourceTotals),
     source_totals: sourceTotals
   });
 
-  // 60 days at 30-minute intervals = 2,880 points. Keep a little headroom.
   history.snapshots = snapshots.slice(-3000);
   history.updated_at = now;
   writeJson(HISTORY_PATH, history);
