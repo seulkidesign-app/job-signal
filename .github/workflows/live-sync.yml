@@ -1,6 +1,10 @@
 name: Live Job Market Sync
 
 on:
+  push:
+    branches: ["main"]
+    paths:
+      - '.github/workflows/live-sync.yml'
   schedule:
     - cron: '7,37 * * * *'
   workflow_dispatch:
