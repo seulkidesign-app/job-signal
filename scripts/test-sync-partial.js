@@ -52,7 +52,15 @@ try {
   if (!next.jobs.some(job => job.id === 'saramin-900001')) {
     throw new Error('successful market was not refreshed');
   }
-  console.log('partial failure fallback verified');
+
+  const sources = JSON.parse(fs.readFileSync('data/sources.json', 'utf8'));
+  const saramin = sources.sources?.find(source => source.name === '사람인');
+  if (!saramin) throw new Error('Saramin source state is missing');
+  if (saramin.status !== 'live') throw new Error(`expected Saramin source to become live, got ${saramin.status}`);
+  if (saramin.mode !== 'official_api') throw new Error(`expected official_api mode, got ${saramin.mode}`);
+  if (!saramin.last_success_at) throw new Error('Saramin live state missing last_success_at');
+
+  console.log('partial failure fallback and automatic LIVE transition verified');
 } finally {
   for (const [file, content] of Object.entries(backups)) fs.writeFileSync(file, content);
 }
