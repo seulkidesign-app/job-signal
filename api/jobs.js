@@ -1,203 +1,117 @@
 const snapshot = require('../data/jobs.json');
 const supplement = require('../data/verified-supplement.json');
 
-const LIVE_QUERY_MAP = {
-  '디자인': '프로덕트 디자이너',
-  '프로덕트 디자이너': '프로덕트 디자이너',
-  'product designer': '프로덕트 디자이너',
-  'pm': '프로덕트 매니저',
-  'pm·기획': '프로덕트 매니저',
-  '기획': '프로덕트 매니저',
-  '프로덕트': '프로덕트 매니저',
-  '프로덕트 매니저': '프로덕트 매니저',
-  'product manager': '프로덕트 매니저',
-  '마케팅': '마케팅',
-  'marketing': '마케팅',
-  '데이터': '데이터 분석',
-  '데이터 분석': '데이터 분석',
-  'data': '데이터 분석',
-  '백엔드': '백엔드 개발자',
-  '백엔드 개발자': '백엔드 개발자',
-  'backend': '백엔드 개발자',
-  '개발': '백엔드 개발자'
+const QUERY_ALIASES = {
+  '디자인': ['디자인','designer','ux','ui','figma','product designer'],
+  '프로덕트 디자이너': ['프로덕트 디자이너','product designer','디자인','ux','ui'],
+  'pm': ['pm','프로덕트 매니저','product manager','기획'],
+  'pm·기획': ['pm','프로덕트 매니저','product manager','기획'],
+  '프로덕트': ['프로덕트','product','pm','기획','product manager'],
+  '기획': ['기획','pm','product manager','프로덕트'],
+  '마케팅': ['마케팅','marketing','브랜드','growth','ua','crm'],
+  '데이터': ['데이터','data','analyst','analytics','data engineer'],
+  '백엔드': ['백엔드','backend','server','api','spring','django'],
+  '개발': ['개발','backend','백엔드','engineer'],
+  'ai': ['ai','llm','rag','머신러닝']
 };
 
-function text(v) {
-  if (v == null) return '';
-  if (typeof v === 'string' || typeof v === 'number') return String(v);
-  return v.name || v.value || '';
+function normalize(value = '') {
+  return String(value).toLowerCase().replace(/\s+/g, ' ').trim();
 }
 
-function toNumber(v) {
-  const n = Number(v);
-  return Number.isFinite(n) ? n : null;
-}
-
-function cleanLocation(v) {
-  return text(v).replace(/\s*>\s*/g, ' ').replace(/,/g, ' · ').trim();
-}
-
-function closeLabel(closeType, expirationDate) {
-  const code = String(closeType?.code || '');
-  if (code === '2') return '채용 시 마감';
-  if (code === '3') return '상시채용';
-  if (code === '4') return '수시채용';
-  if (expirationDate) return String(expirationDate).slice(0, 10);
-  return text(closeType) || '공고 확인';
-}
-
-function mapSaramin(job) {
-  const pos = job.position || {};
-  const exp = pos['experience-level'] || {};
-  const keyword = typeof job.keyword === 'string'
-    ? job.keyword.split(',').map(s => s.trim()).filter(Boolean).slice(0, 10)
-    : [];
-
-  return {
-    id: `saramin-${job.id}`,
-    title: text(pos.title),
-    company: text(job.company?.detail?.name || job.company?.name) || '기업명 미표기',
-    category: text(pos['job-mid-code']) || '기타',
-    location: cleanLocation(pos.location) || '근무지 확인',
-    exp_min: toNumber(exp.min),
-    exp_max: toNumber(exp.max),
-    employment: text(pos['job-type']) || '고용형태 확인',
-    source: '사람인',
-    url: job.url,
-    posted_at: job['posting-date'] ? String(job['posting-date']).slice(0, 10) : null,
-    deadline: closeLabel(job['close-type'], job['expiration-date']),
-    skills: keyword,
-    salary: text(job.salary) || null,
-    verified_at: new Date().toISOString().slice(0, 10)
-  };
-}
-
-function keyOf(j) {
-  return `${j.company}|${j.title}`.toLowerCase().replace(/\s+/g, ' ').trim();
+function cleanTitle(title = '', company = '') {
+  let value = String(title).trim();
+  const c = String(company).trim();
+  if (!c) return value;
+  const escaped = c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return value.replace(new RegExp(`^\\[?${escaped}\\]?\\s*[-–—:]?\\s*`, 'i'), '').trim();
 }
 
 function dedupe(jobs) {
   const seen = new Set();
-  return jobs.filter(j => {
-    const key = keyOf(j);
+  return jobs.filter(job => {
+    const key = normalize(`${job.company}|${cleanTitle(job.title, job.company)}`);
     if (!key || seen.has(key)) return false;
     seen.add(key);
     return true;
   });
 }
 
-function canonicalLiveQuery(query) {
-  const q = String(query || '').toLowerCase().trim();
-  if (LIVE_QUERY_MAP[q]) return LIVE_QUERY_MAP[q];
-  if (/디자이|designer|\bux\b|\bui\b/.test(q)) return '프로덕트 디자이너';
-  if (/프로덕트|product manager|\bpm\b|기획/.test(q)) return '프로덕트 매니저';
-  if (/마케팅|marketing|growth|crm/.test(q)) return '마케팅';
-  if (/데이터|data|analyst|analytics/.test(q)) return '데이터 분석';
-  if (/백엔드|backend|server|spring/.test(q)) return '백엔드 개발자';
+function parseDay(value) {
+  const match = String(value || '').match(/^\d{4}-\d{2}-\d{2}/);
+  if (!match) return null;
+  const date = new Date(`${match[0]}T23:59:59+09:00`);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function isExpired(job) {
+  const deadline = parseDay(job.deadline);
+  return deadline ? deadline.getTime() < Date.now() : false;
+}
+
+function marketKeyForQuery(query = '') {
+  const q = normalize(query);
+  if (/디자이|designer|\bux\b|\bui\b/.test(q)) return 'design';
+  if (/프로덕트|product manager|\bpm\b|기획/.test(q)) return 'pm';
+  if (/마케팅|marketing|growth|crm/.test(q)) return 'marketing';
+  if (/데이터|data|analyst|analytics/.test(q)) return 'data';
+  if (/백엔드|backend|server|spring|개발/.test(q)) return 'backend';
   return null;
 }
 
-async function fetchSaramin(query) {
-  const key = process.env.SARAMIN_ACCESS_KEY;
-  const liveQuery = canonicalLiveQuery(query);
-  if (!key) return { enabled: false, jobs: [], total: null, error: null, query: liveQuery };
-  if (!liveQuery) return { enabled: true, jobs: [], total: null, error: null, query: null };
-
-  const params = new URLSearchParams({
-    'access-key': key,
-    keywords: liveQuery,
-    count: '110',
-    start: '0',
-    sort: 'ud',
-    fields: 'posting-date,expiration-date'
-  });
-
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 8000);
-  try {
-    const response = await fetch(`https://oapi.saramin.co.kr/job-search?${params}`, {
-      headers: { Accept: 'application/json' },
-      signal: controller.signal
-    });
-    if (!response.ok) throw new Error(`Saramin HTTP ${response.status}`);
-    const data = await response.json();
-    if (data.result?.code) throw new Error(data.result.message || `Saramin error ${data.result.code}`);
-
-    const list = data.jobs?.job;
-    const rows = Array.isArray(list) ? list : (list ? [list] : []);
-    const jobs = rows.filter(j => Number(j.active) === 1).map(mapSaramin);
-    const total = Number(data.jobs?.total);
-
-    return {
-      enabled: true,
-      jobs,
-      total: Number.isFinite(total) ? total : null,
-      error: null,
-      query: liveQuery
-    };
-  } catch (error) {
-    return {
-      enabled: true,
-      jobs: [],
-      total: null,
-      error: error.message || '사람인 API 오류',
-      query: liveQuery
-    };
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
-function filterSnapshot(jobs, query) {
-  const q = String(query || '').toLowerCase().trim();
+function filterJobs(jobs, query) {
+  const q = normalize(query);
   if (!q) return jobs;
-  const aliases = {
-    '디자인': ['디자인','designer','ux','ui','figma'],
-    '프로덕트 디자이너': ['프로덕트 디자이너','product designer','디자인'],
-    'pm': ['pm','프로덕트 매니저','product manager','기획'],
-    'pm·기획': ['pm','프로덕트 매니저','product manager','기획'],
-    '프로덕트': ['프로덕트','product','pm','기획'],
-    '기획': ['기획','pm','product manager'],
-    '마케팅': ['마케팅','marketing','브랜드','growth','ua'],
-    '데이터': ['데이터','data','analyst','analytics','engineer'],
-    '백엔드': ['백엔드','backend','server','api'],
-    '개발': ['백엔드','backend','개발','engineer']
-  };
-  const terms = aliases[q] || [q];
-  return jobs.filter(j => {
-    const hay = `${j.title} ${j.company} ${j.category} ${j.location} ${(j.skills || []).join(' ')}`.toLowerCase();
-    return terms.some(t => hay.includes(t));
+  const terms = QUERY_ALIASES[q] || [q];
+  return jobs.filter(job => {
+    const hay = normalize(`${job.title} ${job.company} ${job.category} ${job.location} ${(job.skills || []).join(' ')}`);
+    return terms.some(term => hay.includes(normalize(term)));
   });
 }
 
 module.exports = async function handler(req, res) {
-  res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=21600');
+  // The upstream recruiting APIs are intentionally NOT called here.
+  // Live sources are ingested on a fixed schedule by GitHub Actions so public traffic
+  // cannot exhaust provider quotas or make site reliability depend on an upstream request.
+  res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=1800');
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
 
   const query = String(req.query?.q || '디자인').trim().slice(0, 80);
-  const verifiedPool = dedupe([...(supplement.jobs || []), ...(snapshot.jobs || [])]);
-  const snapshotMatches = filterSnapshot(verifiedPool, query);
-  const saramin = await fetchSaramin(query);
-  const jobs = dedupe([...saramin.jobs, ...snapshotMatches]);
+  const pool = dedupe([
+    ...(snapshot.jobs || []),
+    ...(supplement.jobs || [])
+  ].filter(job => !isExpired(job)));
+  const jobs = filterJobs(pool, query);
+  const marketKey = marketKeyForQuery(query);
+  const liveSources = Array.isArray(snapshot.live_sources) ? snapshot.live_sources : [];
+  const hasSaraminLive = liveSources.includes('사람인');
+  const saraminLoaded = jobs.filter(job => job.source === '사람인').length;
+  const saraminTotal = marketKey && Number.isFinite(Number(snapshot.source_totals?.[marketKey]))
+    ? Number(snapshot.source_totals[marketKey])
+    : null;
 
   res.status(200).json({
     query,
-    mode: saramin.jobs.length ? 'live+snapshot' : 'snapshot',
-    generated_at: new Date().toISOString(),
-    snapshot_generated_at: supplement.generated_at || snapshot.generated_at,
-    snapshot_total: verifiedPool.length,
-    coverage: snapshot.coverage,
+    mode: liveSources.length ? 'scheduled-live' : 'snapshot',
+    generated_at: snapshot.generated_at || supplement.generated_at || null,
+    snapshot_generated_at: supplement.generated_at || snapshot.generated_at || null,
+    snapshot_total: pool.length,
+    coverage: snapshot.coverage || '검증된 공개 채용공고',
     jobs,
+    live_sources: liveSources,
+    sync_interval_minutes: Number(snapshot.sync_interval_minutes || 0) || null,
+    source_totals: snapshot.source_totals || {},
     live_meta: {
-      saramin_query: saramin.query,
-      saramin_total: saramin.total,
-      saramin_loaded: saramin.jobs.length,
+      saramin_total: saraminTotal,
+      saramin_loaded: saraminLoaded,
       sample_cap: 110
     },
     source_status: {
-      saramin: saramin.enabled ? (saramin.error ? 'error' : (saramin.query ? 'live' : 'unsupported_query')) : 'needs_key',
+      saramin: hasSaraminLive ? 'scheduled_live' : 'needs_key',
       verified_snapshot: 'live'
     },
-    warning: saramin.error || null
+    warning: Number(snapshot.partial_failures || 0) > 0
+      ? `${Number(snapshot.partial_failures)}개 직군에서 직전 정상 데이터를 유지 중입니다.`
+      : null
   });
 };
