@@ -1,0 +1,186 @@
+(() => {
+  const DAY = 24 * 60 * 60 * 1000;
+  const WEEK = 7 * DAY;
+  let history = { snapshots: [] };
+  let datasetMeta = null;
+  let ready = false;
+
+  const els = {
+    title: document.getElementById('resultTitle'),
+    count: document.getElementById('trendCount'),
+    junior: document.getElementById('trendJunior'),
+    senior: document.getElementById('trendSenior'),
+    status: document.getElementById('trendStatus'),
+    freshness: document.getElementById('syncFreshness')
+  };
+
+  function normalize(value = '') {
+    return String(value).toLowerCase().replace(/\s+/g, ' ').trim();
+  }
+
+  function marketKey(query) {
+    const q = normalize(query);
+    if (/디자이|designer|\bux\b|\bui\b/.test(q)) return 'design';
+    if (/프로덕트|product manager|\bpm\b|기획/.test(q)) return 'pm';
+    if (/마케팅|marketing|growth|crm/.test(q)) return 'marketing';
+    if (/데이터|data|analyst|analytics/.test(q)) return 'data';
+    if (/백엔드|backend|server|spring|개발/.test(q)) return 'backend';
+    return null;
+  }
+
+  function validDate(value) {
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  function latestPointFor(key) {
+    const points = (history.snapshots || [])
+      .filter(point => point?.markets?.[key] && validDate(point.at))
+      .sort((a, b) => new Date(a.at) - new Date(b.at));
+    return points.length ? points[points.length - 1] : null;
+  }
+
+  function comparisonPointFor(key, latest) {
+    if (!latest) return null;
+    const latestTime = new Date(latest.at).getTime();
+    const target = latestTime - WEEK;
+    const points = (history.snapshots || [])
+      .filter(point => point?.markets?.[key] && validDate(point.at))
+      .filter(point => new Date(point.at).getTime() <= target + 6 * 60 * 60 * 1000)
+      .sort((a, b) => Math.abs(new Date(a.at).getTime() - target) - Math.abs(new Date(b.at).getTime() - target));
+    const candidate = points[0] || null;
+    if (!candidate) return null;
+    const age = latestTime - new Date(candidate.at).getTime();
+    return age >= 6 * DAY ? candidate : null;
+  }
+
+  function baseCount(market) {
+    const total = Number(market?.total_found);
+    if (Number.isFinite(total) && total >= 0) return total;
+    const count = Number(market?.count);
+    return Number.isFinite(count) ? count : null;
+  }
+
+  function changePct(current, previous) {
+    if (!Number.isFinite(current) || !Number.isFinite(previous) || previous === 0) return null;
+    return ((current - previous) / previous) * 100;
+  }
+
+  function formatPercentDelta(value) {
+    if (!Number.isFinite(value)) return '—';
+    const abs = Math.abs(value);
+    if (abs < 0.05) return '0%';
+    return `${value > 0 ? '+' : '−'}${abs.toFixed(abs >= 10 ? 0 : 1)}%`;
+  }
+
+  function formatPointDelta(value) {
+    if (!Number.isFinite(value)) return '—';
+    const abs = Math.abs(value);
+    if (abs < 0.05) return '0%p';
+    return `${value > 0 ? '+' : '−'}${abs.toFixed(1)}%p`;
+  }
+
+  function relativeTime(value) {
+    const date = validDate(value);
+    if (!date) return null;
+    const diff = Math.max(0, Date.now() - date.getTime());
+    const minutes = Math.floor(diff / 60000);
+    if (minutes < 1) return '방금 갱신';
+    if (minutes < 60) return `${minutes}분 전 갱신`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}시간 전 갱신`;
+    const days = Math.floor(hours / 24);
+    return `${days}일 전 갱신`;
+  }
+
+  function setPending(message = '추세 데이터 축적 중') {
+    if (els.count) els.count.textContent = '—';
+    if (els.junior) els.junior.textContent = '—';
+    if (els.senior) els.senior.textContent = '—';
+    if (els.status) els.status.textContent = message;
+  }
+
+  function renderFreshness(latest) {
+    if (!els.freshness) return;
+    const stamp = latest?.at || datasetMeta?.generated_at;
+    const rel = relativeTime(stamp);
+    const interval = Number(datasetMeta?.sync_interval_minutes);
+    const hasLive = Array.isArray(datasetMeta?.live_sources) && datasetMeta.live_sources.length > 0;
+
+    if (hasLive && rel) {
+      els.freshness.textContent = `${rel}${Number.isFinite(interval) ? ` · ${interval}분 자동 동기화` : ''}`;
+      els.freshness.classList.add('is-live');
+      return;
+    }
+
+    if (rel) {
+      els.freshness.textContent = `${rel} · 검증 스냅샷`;
+      els.freshness.classList.remove('is-live');
+      return;
+    }
+
+    els.freshness.textContent = '자동 동기화 연결 대기';
+    els.freshness.classList.remove('is-live');
+  }
+
+  function render() {
+    if (!ready || !els.title) return;
+    const key = marketKey(els.title.textContent);
+    if (!key) {
+      setPending('이 검색어는 추세 비교 준비 중');
+      renderFreshness(null);
+      return;
+    }
+
+    const latest = latestPointFor(key);
+    renderFreshness(latest);
+    if (!latest) {
+      setPending('첫 자동 스냅샷 대기 중');
+      return;
+    }
+
+    const previous = comparisonPointFor(key, latest);
+    if (!previous) {
+      const first = (history.snapshots || []).find(point => point?.markets?.[key]);
+      const firstDate = first ? validDate(first.at) : null;
+      const days = firstDate ? Math.max(0, Math.floor((new Date(latest.at) - firstDate) / DAY)) : 0;
+      setPending(days ? `${days}일째 데이터 축적 중 · 7일이 되면 비교` : '추세 데이터 축적 중 · 7일 후 비교 시작');
+      return;
+    }
+
+    const nowMarket = latest.markets[key];
+    const oldMarket = previous.markets[key];
+    const nowCount = baseCount(nowMarket);
+    const oldCount = baseCount(oldMarket);
+    const countDelta = changePct(nowCount, oldCount);
+    const juniorDelta = Number(nowMarket.junior_share) - Number(oldMarket.junior_share);
+    const seniorDelta = Number(nowMarket.senior5_share) - Number(oldMarket.senior5_share);
+
+    els.count.textContent = formatPercentDelta(countDelta);
+    els.junior.textContent = formatPointDelta(juniorDelta);
+    els.senior.textContent = formatPointDelta(seniorDelta);
+    els.status.textContent = '실제 7일 관측값 비교';
+  }
+
+  async function load() {
+    const [historyResult, dataResult] = await Promise.allSettled([
+      fetch('data/history.json', { cache: 'no-store' }).then(res => res.ok ? res.json() : Promise.reject(new Error('history'))),
+      fetch('data/jobs.json', { cache: 'no-store' }).then(res => res.ok ? res.json() : Promise.reject(new Error('jobs')))
+    ]);
+
+    if (historyResult.status === 'fulfilled') history = historyResult.value;
+    if (dataResult.status === 'fulfilled') datasetMeta = dataResult.value;
+    ready = true;
+    render();
+  }
+
+  if (els.title) {
+    new MutationObserver(render).observe(els.title, { childList: true, subtree: true, characterData: true });
+  }
+  window.addEventListener('popstate', () => setTimeout(render, 0));
+  load().catch(() => {
+    ready = true;
+    setPending('추세 데이터를 불러오지 못했어요');
+    renderFreshness(null);
+  });
+})();
