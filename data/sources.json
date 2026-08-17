@@ -1,0 +1,40 @@
+{
+  "updated_at": "2026-08-17T15:50:00+09:00",
+  "sources": [
+    {
+      "name": "사람인",
+      "mode": "official_api_ready",
+      "automation": "30min",
+      "status": "needs_secret",
+      "note": "SARAMIN_ACCESS_KEY가 GitHub Actions secret에 설정되면 5개 핵심 직군을 자동 동기화"
+    },
+    {
+      "name": "잡코리아",
+      "mode": "verified_snapshot",
+      "automation": null,
+      "status": "integration_pending",
+      "note": "현재는 직접 검증한 공개 공고만 사용. 공식 연동 경로 확정 후 자동화 예정"
+    },
+    {
+      "name": "원티드",
+      "mode": "verified_snapshot",
+      "automation": null,
+      "status": "integration_pending",
+      "note": "현재는 직접 검증한 공개 공고만 사용. 승인된 연동 경로 확보 전 자동 수집하지 않음"
+    },
+    {
+      "name": "리멤버",
+      "mode": "verified_snapshot",
+      "automation": null,
+      "status": "integration_pending",
+      "note": "현재는 직접 검증한 공개 공고만 사용. 허용된 자동 수집 경로 확인 전 자동화하지 않음"
+    },
+    {
+      "name": "직행",
+      "mode": "verified_snapshot",
+      "automation": null,
+      "status": "integration_pending",
+      "note": "현재는 직접 검증한 공개 공고만 사용. 허용된 자동 수집 경로 확인 전 자동화하지 않음"
+    }
+  ]
+}
