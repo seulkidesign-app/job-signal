@@ -2,6 +2,13 @@
   const DAY = 24 * 60 * 60 * 1000;
   const WEEK = 7 * DAY;
   const LIVE_STALE_AFTER = 90 * 60 * 1000;
+  const MARKETS = [
+    { key: 'design', label: '디자인', query: '디자인' },
+    { key: 'pm', label: 'PM·기획', query: 'PM' },
+    { key: 'marketing', label: '마케팅', query: '마케팅' },
+    { key: 'data', label: '데이터', query: '데이터' },
+    { key: 'backend', label: '백엔드', query: '백엔드' }
+  ];
   let history = { snapshots: [] };
   let datasetMeta = null;
   let sourceMeta = null;
@@ -14,7 +21,8 @@
     senior: document.getElementById('trendSenior'),
     status: document.getElementById('trendStatus'),
     freshness: document.getElementById('syncFreshness'),
-    platformStrip: document.querySelector('.platform-strip')
+    platformStrip: document.querySelector('.platform-strip'),
+    hero: document.querySelector('.hero')
   };
 
   function normalize(value = '') {
@@ -64,6 +72,10 @@
     return Number.isFinite(count) ? count : null;
   }
 
+  function percent(n, d) {
+    return d ? Math.round((n / d) * 100) : 0;
+  }
+
   function changePct(current, previous) {
     if (!Number.isFinite(current) || !Number.isFinite(previous) || previous === 0) return null;
     return ((current - previous) / previous) * 100;
@@ -99,6 +111,44 @@
   function isStale(value) {
     const date = validDate(value);
     return date ? Date.now() - date.getTime() > LIVE_STALE_AFTER : true;
+  }
+
+  function jobsForMarket(market) {
+    const jobs = Array.isArray(datasetMeta?.jobs) ? datasetMeta.jobs : [];
+    return jobs.filter(job => {
+      if (job.market_key) return job.market_key === market.key;
+      return normalize(job.category).includes(normalize(market.label));
+    });
+  }
+
+  function renderOverview() {
+    if (!els.hero || !datasetMeta || document.querySelector('.market-overview')) return;
+    const hasLive = Array.isArray(datasetMeta.live_sources) && datasetMeta.live_sources.length > 0;
+    const section = document.createElement('section');
+    section.className = 'market-overview';
+    section.innerHTML = `
+      <div class="overview-head">
+        <div>
+          <p class="panel-kicker">MARKET OVERVIEW</p>
+          <h2>국내 채용시장 한눈에 보기</h2>
+        </div>
+        <span>${hasLive ? '자동 동기화 데이터' : '현재 검증 데이터'} 기준</span>
+      </div>
+      <div class="overview-grid">
+        ${MARKETS.map(market => {
+          const rows = jobsForMarket(market);
+          const junior = rows.filter(job => job.exp_min != null && Number(job.exp_min) <= 1).length;
+          const senior = rows.filter(job => job.exp_min != null && Number(job.exp_min) >= 5).length;
+          return `
+            <a class="overview-card" href="?q=${encodeURIComponent(market.query)}">
+              <span>${market.label}</span>
+              <strong>${rows.length.toLocaleString('ko-KR')}</strong>
+              <small>신입 ${percent(junior, rows.length)}% · 5년+ ${percent(senior, rows.length)}%</small>
+              <em>자세히 보기 →</em>
+            </a>`;
+        }).join('')}
+      </div>`;
+    els.hero.insertAdjacentElement('afterend', section);
   }
 
   function setPending(message = '추세 데이터 축적 중') {
@@ -159,6 +209,7 @@
   function render() {
     if (!ready || !els.title) return;
     renderSourceStates();
+    renderOverview();
     const key = marketKey(els.title.textContent);
     if (!key) {
       setPending('이 검색어는 추세 비교 준비 중');
