@@ -36,6 +36,14 @@ body {
   font-size: 11px;
   font-weight: 600;
 }
+.platform-strip [data-source-status="needs_secret"] {
+  border-style: dashed;
+  color: #7a6750;
+}
+.platform-strip [data-source-status="live"] {
+  border-color: #a9c985;
+  background: rgba(203,255,139,.3);
+}
 .platform-label {
   margin-right: 2px;
   color: #92978e;
@@ -87,6 +95,11 @@ body {
   color: #2b3327;
   border-color: #a9c985;
   background: rgba(203,255,139,.3);
+}
+.sync-meta .is-stale {
+  color: #7d4e22;
+  border-color: #d7b58d;
+  background: rgba(255,224,184,.36);
 }
 .momentum-grid {
   display: grid;
