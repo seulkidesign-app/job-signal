@@ -13,7 +13,9 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Check browser JavaScript syntax
-        run: node --check app.js
+        run: |
+          node --check app.js
+          node --check market-trends.js
 
       - name: Check Vercel function syntax
         run: node --check api/jobs.js
@@ -61,6 +63,10 @@ jobs:
           grep -q 'id="dashboard"' index.html
           grep -q 'id="jobsList"' index.html
           grep -q 'id="coverageNote"' index.html
+          grep -q 'id="trendCount"' index.html
+          grep -q 'id="trendJunior"' index.html
+          grep -q 'id="trendSenior"' index.html
+          grep -q 'market-trends.js' index.html
           grep -q 'polish.css' index.html
 
       - name: Smoke test API handler without external key
