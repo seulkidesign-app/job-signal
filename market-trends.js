@@ -189,7 +189,9 @@
 
   function sourceLabel(source) {
     if (source.status === 'live') return 'LIVE';
-    if (source.status === 'needs_secret') return '연결 대기';
+    if (source.status === 'needs_secret') return 'API 연결 대기';
+    if (source.status === 'open_api_application') return 'API 신청 가능';
+    if (source.status === 'official_api_review') return 'API 검토';
     if (source.mode === 'verified_snapshot') return '검증';
     return '준비 중';
   }
@@ -206,9 +208,28 @@
     }
   }
 
+  function renderSourceCredit() {
+    const source = Array.isArray(sourceMeta?.sources) ? sourceMeta.sources.find(item => item.name === '사람인') : null;
+    const footer = document.querySelector('footer .source-note');
+    if (!source || !footer || footer.querySelector('.saramin-credit')) return;
+    const link = document.createElement('a');
+    link.className = 'saramin-credit';
+    link.href = 'https://www.saramin.co.kr';
+    link.target = '_blank';
+    link.rel = 'noreferrer';
+    link.textContent = 'Powered by 취업 사람인';
+    link.title = '사람인 공식 채용정보 API 출처 표기';
+    link.style.color = 'inherit';
+    link.style.textDecoration = 'none';
+    link.style.fontSize = '11px';
+    link.style.opacity = '.72';
+    footer.appendChild(link);
+  }
+
   function render() {
     if (!ready || !els.title) return;
     renderSourceStates();
+    renderSourceCredit();
     renderOverview();
     const key = marketKey(els.title.textContent);
     if (!key) {
