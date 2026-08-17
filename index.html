@@ -3,15 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Job Signal은 흩어진 국내 채용공고를 한 번에 비교해 직무별 경력 요구, 채용 기업, 원천 플랫폼을 빠르게 보여주는 채용시장 베타 인덱스입니다." />
-  <meta property="og:title" content="Job Signal — 국내 채용공고를 시장 신호로" />
-  <meta property="og:description" content="플랫폼마다 흩어진 국내 채용공고를 한 번에 비교해보세요." />
+  <meta name="description" content="Job Signal은 국내 채용공고를 직무별로 비교해 현재 채용량, 경력 요구, 채용 기업과 시장 변화를 빠르게 보여주는 채용시장 인덱스입니다." />
+  <meta property="og:title" content="Job Signal — 국내 채용시장을 한눈에" />
+  <meta property="og:description" content="흩어진 국내 채용공고를 모아 지금 어떤 직무가 누구를 뽑는지 시장 신호로 읽어보세요." />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://seulkidesign-app.github.io/job-signal/" />
-  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:card" content="summary_large_image" />
   <link rel="canonical" href="https://seulkidesign-app.github.io/job-signal/" />
   <link rel="icon" href="favicon.svg" type="image/svg+xml" />
-  <title>Job Signal — 국내 채용공고를 시장 신호로</title>
+  <title>Job Signal — 국내 채용시장을 한눈에</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -32,7 +32,7 @@
     <section class="hero">
       <p class="eyebrow">국내 채용공고를, 목록이 아니라 시장 신호로</p>
       <h1>지금 이 직무는<br><span>누구를 뽑고 있을까?</span></h1>
-      <p class="hero-copy">여러 채용 플랫폼에 흩어진 공개 공고를 비교해 경력 요구, 채용 기업, 원천 플랫폼을 한 번에 읽습니다. 베타에서는 테크·디지털 5개 직군부터 시작합니다.</p>
+      <p class="hero-copy">여러 채용 플랫폼에 흩어진 공개 공고를 비교해 현재 채용량, 경력 요구, 채용 기업과 시장 변화를 한 번에 읽습니다. 베타에서는 테크·디지털 5개 직군부터 시작합니다.</p>
 
       <form id="searchForm" class="search-shell">
         <div class="search-icon">⌕</div>
@@ -48,9 +48,9 @@
         <button data-query="백엔드">백엔드</button>
       </div>
 
-      <p id="coverageNote" class="coverage-note">검증된 공개 공고를 상세 링크와 함께 제공합니다. 수치는 현재 베타 인덱스 범위에서만 계산합니다.</p>
-      <div class="platform-strip" aria-label="현재 검증 경로">
-        <span class="platform-label">현재 검증 경로</span>
+      <p id="coverageNote" class="coverage-note">검증된 공개 공고를 상세 링크와 함께 제공합니다. 수치는 현재 연결된 데이터 범위에서만 계산합니다.</p>
+      <div class="platform-strip" aria-label="현재 데이터 경로">
+        <span class="platform-label">현재 데이터 경로</span>
         <span>사람인</span><span>잡코리아</span><span>원티드</span><span>리멤버</span><span>직행</span>
       </div>
     </section>
@@ -90,6 +90,36 @@
           <span>검색 결과 중</span>
         </article>
       </div>
+
+      <section class="momentum" aria-label="채용시장 변화">
+        <div class="momentum-head">
+          <div>
+            <p class="panel-kicker">MARKET MOMENTUM</p>
+            <h3>7일 전과 비교하면</h3>
+          </div>
+          <div class="sync-meta">
+            <span id="syncFreshness">자동 동기화 준비 중</span>
+            <span id="trendStatus">추세 데이터 축적 중</span>
+          </div>
+        </div>
+        <div class="momentum-grid">
+          <div class="momentum-cell">
+            <span>채용 공고 수</span>
+            <strong id="trendCount">—</strong>
+            <small>검색 결과 총량 기준</small>
+          </div>
+          <div class="momentum-cell">
+            <span>신입·1년 이하 비중</span>
+            <strong id="trendJunior">—</strong>
+            <small>7일 변화폭</small>
+          </div>
+          <div class="momentum-cell">
+            <span>5년 이상 비중</span>
+            <strong id="trendSenior">—</strong>
+            <small>7일 변화폭</small>
+          </div>
+        </div>
+      </section>
 
       <div class="insight-grid">
         <article class="panel skills-panel">
@@ -149,39 +179,40 @@
 
       <section class="methodology" aria-label="데이터 범위와 집계 방법">
         <p class="panel-kicker">HOW IT WORKS</p>
-        <h3>숫자를 과장하지 않는 방식으로 만들고 있어요.</h3>
+        <h3>‘현재 시장’을 과장 없이 읽는 방식으로 만들고 있어요.</h3>
         <div class="method-grid">
-          <div><strong>01</strong><span>공개된 채용 메타데이터만 사용하고 상세 공고로 이동할 수 있는 링크를 남깁니다.</span></div>
-          <div><strong>02</strong><span>동일 기업·동일 공고 제목은 중복으로 집계하지 않고, 마감일이 확인되는 종료 공고는 자동 제외합니다.</span></div>
-          <div><strong>03</strong><span>현재 연결된 데이터 범위를 명시하고, 전체 국내 채용시장을 대표하는 수치처럼 표현하지 않습니다.</span></div>
+          <div><strong>01</strong><span>공식 API와 직접 검증한 공개 채용 메타데이터를 사용하고, 원문 공고로 이동할 수 있는 링크를 남깁니다.</span></div>
+          <div><strong>02</strong><span>동일 기업·동일 공고는 중복 집계하지 않고, 마감이 확인된 공고는 활성 시장 데이터에서 제외합니다.</span></div>
+          <div><strong>03</strong><span>자동 동기화 때마다 시장 스냅샷을 저장해 충분한 기간이 쌓이면 7일 변화량을 실제 관측값으로 보여줍니다.</span></div>
         </div>
       </section>
     </section>
 
     <section id="emptyState" class="empty-state hidden">
       <div class="empty-icon">∅</div>
-      <h2>아직 베타 인덱스에 없는 검색어예요.</h2>
+      <h2>아직 지원하지 않는 검색어예요.</h2>
       <p>현재는 ‘디자인’, ‘PM’, ‘마케팅’, ‘데이터’, ‘백엔드’를 우선 지원합니다. 결과가 없는 검색어에 임의의 숫자를 보여주지 않습니다.</p>
     </section>
 
     <section id="loadingState" class="loading-state hidden">
       <div class="loader"></div>
-      <p>공고를 비교하는 중…</p>
+      <p>채용시장을 읽는 중…</p>
     </section>
   </main>
 
   <footer>
     <div>
       <strong>JOB SIGNAL.</strong>
-      <p>플랫폼마다 흩어진 국내 채용공고를 시장 데이터로 읽는 베타 인덱스.</p>
+      <p>플랫폼마다 흩어진 국내 채용공고를 현재의 시장 데이터로 읽는 인덱스.</p>
     </div>
     <div class="source-note">
       <span>데이터 원칙</span>
-      <span>공개 메타데이터 · 상세 링크 · 출처 표기 · 검증일 기록</span>
+      <span>공개 메타데이터 · 원문 링크 · 출처 표기 · 갱신 시각 · 중복 제거</span>
     </div>
   </footer>
 
   <div id="toast" class="toast" role="status">복사했어요</div>
   <script src="app.js"></script>
+  <script src="market-trends.js"></script>
 </body>
 </html>
