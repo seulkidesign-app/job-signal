@@ -5,6 +5,10 @@ let generatedAt = null;
 let snapshotGeneratedAt = null;
 let snapshotTotal = 0;
 let liveMeta = {};
+let datasetMeta = {};
+let sourceTotals = {};
+let liveSources = [];
+let syncIntervalMinutes = null;
 
 const QUERY_ALIASES = {
   '프로덕트': ['프로덕트','product','pm','기획','product manager'],
@@ -28,6 +32,16 @@ const els = Object.fromEntries([
 
 function normalize(v='') {
   return String(v).toLowerCase().replace(/\s+/g, ' ').trim();
+}
+
+function marketKeyForQuery(query='') {
+  const q = normalize(query);
+  if (/디자이|designer|\bux\b|\bui\b/.test(q)) return 'design';
+  if (/프로덕트|product manager|\bpm\b|기획/.test(q)) return 'pm';
+  if (/마케팅|marketing|growth|crm/.test(q)) return 'marketing';
+  if (/데이터|data|analyst|analytics/.test(q)) return 'data';
+  if (/백엔드|backend|server|spring|개발/.test(q)) return 'backend';
+  return null;
 }
 
 function setState(name) {
@@ -54,14 +68,31 @@ function isExpired(job) {
   return deadline ? deadline.getTime() < Date.now() : false;
 }
 
+function cleanTitle(title='', company='') {
+  let value = String(title).trim();
+  const c = String(company).trim();
+  if (!c) return value;
+  const escaped = c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  value = value.replace(new RegExp(`^\\[?${escaped}\\]?\\s*[-–—:]?\\s*`, 'i'), '');
+  return value.trim();
+}
+
 function dedupe(jobs) {
   const seen = new Set();
   return jobs.filter(job => {
-    const key = normalize(`${job.company}|${job.title}`);
+    const key = normalize(`${job.company}|${cleanTitle(job.title, job.company)}`);
     if (!key || seen.has(key)) return false;
     seen.add(key);
     return true;
   });
+}
+
+function applyDatasetMeta(payload={}) {
+  datasetMeta = payload;
+  generatedAt = payload.generated_at || null;
+  sourceTotals = payload.source_totals || {};
+  liveSources = Array.isArray(payload.live_sources) ? payload.live_sources : [];
+  syncIntervalMinutes = Number(payload.sync_interval_minutes || 0) || null;
 }
 
 async function fetchData(query) {
@@ -78,6 +109,12 @@ async function fetchData(query) {
     snapshotGeneratedAt = payload.snapshot_generated_at || null;
     snapshotTotal = Number(payload.snapshot_total || 0);
     liveMeta = payload.live_meta || {};
+    datasetMeta = payload;
+    liveSources = dataMode === 'live+snapshot' ? ['사람인'] : [];
+    syncIntervalMinutes = null;
+    sourceTotals = {};
+    const key = marketKeyForQuery(query);
+    if (key && Number.isFinite(Number(liveMeta.saramin_total))) sourceTotals[key] = Number(liveMeta.saramin_total);
 
     return dedupe(payload.jobs.filter(job => !isExpired(job)));
   } catch (apiError) {
@@ -93,12 +130,12 @@ async function fetchData(query) {
     ]);
 
     const verifiedPool = dedupe([
-      ...(supplement.jobs || []),
-      ...(base.jobs || [])
+      ...(base.jobs || []),
+      ...(supplement.jobs || [])
     ].filter(job => !isExpired(job)));
 
-    dataMode = 'snapshot';
-    generatedAt = supplement.generated_at || base.generated_at || null;
+    applyDatasetMeta(base);
+    dataMode = liveSources.length ? 'scheduled-live' : 'snapshot';
     snapshotGeneratedAt = supplement.generated_at || base.generated_at || null;
     snapshotTotal = verifiedPool.length;
     liveMeta = {};
@@ -133,7 +170,7 @@ async function analyze(rawQuery, { scroll = true } = {}) {
     allJobs = jobs;
     currentMatches = jobs;
 
-    updateCoverageNote();
+    updateCoverageNote(query);
     updateBadge();
 
     if (!currentMatches.length) {
@@ -157,6 +194,10 @@ function updateBadge() {
     els.liveBadge.innerHTML = '<span class="pulse"></span>LIVE + VERIFIED';
     return;
   }
+  if (dataMode === 'scheduled-live') {
+    els.liveBadge.innerHTML = '<span class="pulse"></span>LIVE INDEX';
+    return;
+  }
   const date = snapshotGeneratedAt ? new Date(snapshotGeneratedAt) : null;
   const label = date && !Number.isNaN(date.getTime())
     ? `${date.getMonth() + 1}.${date.getDate()} VERIFIED`
@@ -164,17 +205,28 @@ function updateBadge() {
   els.liveBadge.innerHTML = `<span class="pulse"></span>${label}`;
 }
 
-function updateCoverageNote() {
+function updateCoverageNote(query='') {
   if (!els.coverageNote) return;
-  const base = snapshotTotal ? `검증 스냅샷 ${snapshotTotal.toLocaleString('ko-KR')}개` : '검증 스냅샷';
+  const key = marketKeyForQuery(query);
+  const base = snapshotTotal ? `현재 분석 가능한 공고 ${snapshotTotal.toLocaleString('ko-KR')}개` : '현재 연결된 검증 공고';
+
+  if (dataMode === 'scheduled-live') {
+    const interval = syncIntervalMinutes ? `${syncIntervalMinutes}분마다` : '주기적으로';
+    const sourceText = liveSources.length ? liveSources.join(' · ') : '공식 API';
+    const found = key && Number.isFinite(Number(sourceTotals[key])) ? ` · 검색 결과 총 ${Number(sourceTotals[key]).toLocaleString('ko-KR')}건` : '';
+    els.coverageNote.textContent = `${sourceText}는 ${interval} 자동 동기화하고, 잡코리아·원티드·리멤버·직행은 최근 직접 검증 공고를 보강합니다${found}. 모든 비율은 화면에 불러온 활성 공고 범위에서 계산합니다.`;
+    return;
+  }
+
   if (dataMode === 'live+snapshot' && liveMeta.saramin_loaded) {
     const totalText = Number.isFinite(Number(liveMeta.saramin_total))
       ? `사람인 검색결과 ${Number(liveMeta.saramin_total).toLocaleString('ko-KR')}건 중 최대 ${Number(liveMeta.sample_cap || 110)}건 표본`
       : `사람인 실시간 표본 ${Number(liveMeta.saramin_loaded).toLocaleString('ko-KR')}건`;
-    els.coverageNote.textContent = `${base} + ${totalText}. 수치는 현재 불러온 표본 범위에서 계산합니다.`;
-  } else {
-    els.coverageNote.textContent = `${base}을 상세 링크와 함께 제공합니다. 수치는 현재 베타 인덱스 범위에서만 계산합니다.`;
+    els.coverageNote.textContent = `${base} + ${totalText}. 수치는 현재 불러온 활성 공고 범위에서 계산합니다.`;
+    return;
   }
+
+  els.coverageNote.textContent = `${base}을 원문 링크와 함께 제공합니다. 자동 API가 연결되지 않은 소스는 실시간인 것처럼 표시하지 않습니다.`;
 }
 
 function percent(n, d) {
@@ -250,6 +302,12 @@ function experienceBuckets(jobs) {
   return buckets;
 }
 
+function formatUpdatedAt(value) {
+  const stamp = value ? new Date(value) : new Date();
+  if (Number.isNaN(stamp.getTime())) return '업데이트 시각 확인 중';
+  return `${stamp.toLocaleDateString('ko-KR', { month:'numeric', day:'numeric' })} ${stamp.toLocaleTimeString('ko-KR', { hour:'2-digit', minute:'2-digit' })} 기준`;
+}
+
 function render(query, jobs) {
   const total = jobs.length;
   const junior = jobs.filter(isJunior).length;
@@ -258,19 +316,22 @@ function render(query, jobs) {
   const sources = countBy(jobs, j => j.source).slice(0, 6);
   const companies = countBy(jobs, j => j.company).slice(0, 6);
   const exp = experienceBuckets(jobs);
+  const marketKey = marketKeyForQuery(query);
 
   els.resultTitle.textContent = query;
-  const stamp = generatedAt ? new Date(generatedAt) : new Date();
-  els.updatedAt.textContent = `확인 ${stamp.toLocaleDateString('ko-KR', { month:'numeric', day:'numeric' })}`;
+  els.updatedAt.textContent = formatUpdatedAt(generatedAt);
 
+  const foundTotal = marketKey && Number.isFinite(Number(sourceTotals[marketKey])) ? Number(sourceTotals[marketKey]) : null;
   if (dataMode === 'live+snapshot' && Number.isFinite(Number(liveMeta.saramin_total))) {
     els.sourceCount.textContent = `${total.toLocaleString('ko-KR')}개 분석 표본 · 사람인 ${Number(liveMeta.saramin_total).toLocaleString('ko-KR')}건 검색`;
+  } else if (dataMode === 'scheduled-live' && foundTotal != null) {
+    els.sourceCount.textContent = `${total.toLocaleString('ko-KR')}개 분석 표본 · 사람인 검색 ${foundTotal.toLocaleString('ko-KR')}건`;
   } else {
     els.sourceCount.textContent = `${total.toLocaleString('ko-KR')}개 검증 공고`;
   }
 
   els.matchCount.textContent = total.toLocaleString('ko-KR');
-  els.matchContext.textContent = dataMode === 'live+snapshot' ? '실시간 + 검증 공고 표본' : '검증 스냅샷 기준';
+  els.matchContext.textContent = (dataMode === 'live+snapshot' || dataMode === 'scheduled-live') ? '자동 갱신 + 검증 공고 표본' : '검증 스냅샷 기준';
   els.remoteShare.textContent = `${percent(junior, total)}%`;
   els.seniorShare.textContent = `${percent(experienced, total)}%`;
   els.freshShare.textContent = `${percent(seoul, total)}%`;
@@ -284,7 +345,7 @@ function render(query, jobs) {
 
   els.locationsList.innerHTML = rankedRows(sources);
   els.companiesList.innerHTML = rankedRows(companies);
-  els.takeaway.innerHTML = buildTakeaway(query, { total, junior, experienced, seoul, sources });
+  els.takeaway.innerHTML = buildTakeaway(query, { total, junior, experienced, seoul, sources, foundTotal });
 
   const sorted = [...jobs].sort((a, b) => {
     const ad = a.posted_at ? new Date(a.posted_at).getTime() : 0;
@@ -319,11 +380,15 @@ function buildTakeaway(query, s) {
   const topSource = s.sources[0]?.[0];
 
   const bits = [];
-  bits.push(`<strong>${escapeHtml(query)}</strong> 관련 공고 <strong>${s.total}개</strong>를 현재 분석 표본에서 확인했어요.`);
-  if (s.junior > 0) bits.push(`신입·1년 이하 진입 가능 공고는 <strong>${juniorPct}%</strong>입니다.`);
+  if (s.foundTotal != null) {
+    bits.push(`<strong>${escapeHtml(query)}</strong> 관련 사람인 검색 결과는 현재 <strong>${s.foundTotal.toLocaleString('ko-KR')}건</strong>이고, 그중 Job Signal이 불러온 활성 표본과 타 플랫폼 검증 공고를 함께 분석합니다.`);
+  } else {
+    bits.push(`<strong>${escapeHtml(query)}</strong> 관련 공고 <strong>${s.total}개</strong>를 현재 분석 표본에서 확인했어요.`);
+  }
+  if (s.junior > 0) bits.push(`신입·1년 이하 진입 가능 공고는 표본의 <strong>${juniorPct}%</strong>입니다.`);
   else bits.push('현재 표본에서는 신입·1년 이하 공고가 보이지 않습니다.');
   bits.push(`최소 5년 이상을 요구하는 공고는 <strong>${expPct}%</strong>, 서울 근무 공고는 <strong>${seoulPct}%</strong>입니다.`);
-  if (topSource) bits.push(`가장 많이 확인된 원천은 <strong>${escapeHtml(topSource)}</strong>입니다.`);
+  if (topSource) bits.push(`표본에서 가장 많이 확인된 원천은 <strong>${escapeHtml(topSource)}</strong>입니다.`);
   return bits.join(' ');
 }
 
@@ -343,8 +408,10 @@ function linkedinText() {
   const junior = currentMatches.filter(isJunior).length;
   const experienced = currentMatches.filter(isExperienced).length;
   const topSources = countBy(currentMatches, j => j.source).slice(0, 5).map(([s]) => s);
+  const key = marketKeyForQuery(q);
+  const found = key && Number.isFinite(Number(sourceTotals[key])) ? Number(sourceTotals[key]) : null;
 
-  return `국내 “${q}” 채용공고를 한 번에 비교해봤습니다.\n\n현재 Job Signal 분석 표본 ${total}개\n• 신입·1년 이하 진입 가능 ${percent(junior, total)}%\n• 최소 5년 이상 요구 ${percent(experienced, total)}%\n• 확인된 원천: ${topSources.join(', ')}\n\n플랫폼마다 흩어진 채용공고를 ‘목록’이 아니라 시장 신호로 읽어보는 Job Signal을 만들고 있습니다.\n\n※ 현재는 테크·디지털 5직군 중심 베타이며, 연결된 데이터 범위 안에서 계산한 수치입니다.\n\n${location.href}\n\n#채용 #커리어 #취업 #데이터 #JobSignal`;
+  return `국내 “${q}” 채용시장을 한 번에 비교해봤습니다.\n\n${found != null ? `사람인 현재 검색 결과 ${found.toLocaleString('ko-KR')}건\n` : ''}Job Signal 분석 표본 ${total}개\n• 신입·1년 이하 진입 가능 ${percent(junior, total)}%\n• 최소 5년 이상 요구 ${percent(experienced, total)}%\n• 확인된 원천: ${topSources.join(', ')}\n\n플랫폼마다 흩어진 채용공고를 ‘목록’이 아니라 시장 신호로 읽어보는 Job Signal을 만들고 있습니다.\n\n※ 현재는 테크·디지털 5직군 중심 베타이며, 연결된 데이터 범위 안에서 계산한 수치입니다.\n\n${location.href}\n\n#채용 #커리어 #취업 #데이터 #JobSignal`;
 }
 
 function escapeHtml(value='') {
@@ -396,8 +463,8 @@ els.copyInsight.addEventListener('click', () => copyText(linkedinText()));
 
 els.shareTop.addEventListener('click', async () => {
   const shareData = {
-    title: 'Job Signal — 국내 채용시장 베타 인덱스',
-    text: '플랫폼마다 흩어진 국내 채용공고를 시장 신호로 비교해보세요.',
+    title: 'Job Signal — 국내 채용시장을 한눈에',
+    text: '플랫폼마다 흩어진 국내 채용공고를 현재의 시장 신호로 비교해보세요.',
     url: location.href
   };
   if (navigator.share) {
