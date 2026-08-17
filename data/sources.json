@@ -1,40 +1,45 @@
 {
-  "updated_at": "2026-08-17T15:50:00+09:00",
+  "updated_at": "2026-08-17T16:50:00+09:00",
   "sources": [
     {
       "name": "사람인",
       "mode": "official_api_ready",
       "automation": "30min",
       "status": "needs_secret",
-      "note": "SARAMIN_ACCESS_KEY가 GitHub Actions secret에 설정되면 5개 핵심 직군을 자동 동기화"
+      "note": "공식 채용정보 API. 승인 후 SARAMIN_ACCESS_KEY를 GitHub Actions secret에 넣으면 5개 핵심 직군을 30분마다 자동 동기화",
+      "reference": "https://oapi.saramin.co.kr/"
     },
     {
       "name": "잡코리아",
       "mode": "verified_snapshot",
       "automation": null,
-      "status": "integration_pending",
-      "note": "현재는 직접 검증한 공개 공고만 사용. 공식 연동 경로 확정 후 자동화 예정"
+      "status": "official_api_review",
+      "note": "잡코리아 공식 사이트에서 Open API 메뉴를 확인. Job Signal의 자동 집계·분석 용도 허용 범위와 신청 조건 확인 후 LIVE 전환",
+      "reference": "https://www.jobkorea.co.kr/"
     },
     {
       "name": "원티드",
       "mode": "verified_snapshot",
       "automation": null,
-      "status": "integration_pending",
-      "note": "현재는 직접 검증한 공개 공고만 사용. 승인된 연동 경로 확보 전 자동 수집하지 않음"
+      "status": "open_api_application",
+      "note": "현재 원티드 정책 문서에서 Open API 신청 절차가 확인됨. 승인된 이용 범위를 확인한 뒤 LIVE 소스로 연결",
+      "reference": "https://www.wanted.co.kr/"
     },
     {
       "name": "리멤버",
       "mode": "verified_snapshot",
       "automation": null,
       "status": "integration_pending",
-      "note": "현재는 직접 검증한 공개 공고만 사용. 허용된 자동 수집 경로 확인 전 자동화하지 않음"
+      "note": "현재는 원문 링크를 직접 검증한 공개 공고만 보강. Job Signal 용도의 공식 자동 수집 경로가 확인되기 전에는 LIVE 표시하지 않음",
+      "reference": "https://career.rememberapp.co.kr/"
     },
     {
       "name": "직행",
       "mode": "verified_snapshot",
       "automation": null,
       "status": "integration_pending",
-      "note": "현재는 직접 검증한 공개 공고만 사용. 허용된 자동 수집 경로 확인 전 자동화하지 않음"
+      "note": "현재는 원문 링크를 직접 검증한 공개 공고만 보강. 허용된 자동 데이터 경로가 확인되기 전에는 LIVE 표시하지 않음",
+      "reference": "https://zighang.com/"
     }
   ]
 }
