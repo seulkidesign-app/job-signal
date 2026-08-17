@@ -18,6 +18,9 @@ jobs:
       - name: Check Vercel function syntax
         run: node --check api/jobs.js
 
+      - name: Check live sync syntax
+        run: node --check scripts/sync-live.js
+
       - name: Validate job datasets
         run: |
           node - <<'NODE'
@@ -38,6 +41,18 @@ jobs:
             }
           }
           console.log('validated jobs:', total);
+          NODE
+
+      - name: Validate trend history store
+        run: |
+          node - <<'NODE'
+          const fs = require('fs');
+          const history = JSON.parse(fs.readFileSync('data/history.json', 'utf8'));
+          if (!Array.isArray(history.snapshots)) throw new Error('history.snapshots must be an array');
+          for (const point of history.snapshots) {
+            if (!point.at || !point.markets) throw new Error('invalid history point');
+          }
+          console.log('history points:', history.snapshots.length);
           NODE
 
       - name: Validate required frontend hooks
@@ -67,3 +82,6 @@ jobs:
           };
           Promise.resolve(handler(req,res)).catch(err => { console.error(err); process.exit(1); });
           NODE
+
+      - name: Smoke test live sync without secret
+        run: node scripts/sync-live.js
