@@ -221,6 +221,15 @@ function markSaraminLive(now) {
   writeJson(SOURCES_PATH, data);
 }
 
+function previousMarketJobs(previous, search) {
+  const jobs = Array.isArray(previous?.jobs) ? previous.jobs : [];
+  return jobs.filter(job => {
+    if (job.source !== '사람인') return false;
+    if (job.market_key) return job.market_key === search.key;
+    return job.category === search.label;
+  }).filter(job => !isExpired(job));
+}
+
 async function main() {
   const accessKey = process.env.SARAMIN_ACCESS_KEY;
   if (!accessKey) {
@@ -228,18 +237,33 @@ async function main() {
     return;
   }
 
+  const previous = readJson(JOBS_PATH, { jobs: [], source_totals: {} });
   const settled = await Promise.allSettled(SEARCHES.map(search => fetchSaramin(search, accessKey)));
   const failed = settled.filter(item => item.status === 'rejected');
   if (failed.length === settled.length) throw new Error('All live source queries failed. Existing dataset left untouched.');
 
-  const liveResults = settled.filter(item => item.status === 'fulfilled').map(item => item.value);
+  const liveResults = [];
+  const preservedJobs = [];
+  const sourceTotals = { ...(previous.source_totals || {}) };
+
+  settled.forEach((item, index) => {
+    const search = SEARCHES[index];
+    if (item.status === 'fulfilled') {
+      liveResults.push(item.value);
+      sourceTotals[search.key] = item.value.total;
+      return;
+    }
+    const fallback = previousMarketJobs(previous, search);
+    preservedJobs.push(...fallback);
+    console.warn(`${search.label} live query failed; preserving ${fallback.length} last-known-good jobs.`);
+  });
+
   const liveJobs = liveResults.flatMap(result => result.jobs);
   const supplement = recentVerifiedSupplement(72).map(job => ({ ...job, market_key: job.market_key || null }));
-  const jobs = dedupe([...liveJobs, ...supplement]).filter(job => !isExpired(job));
+  const jobs = dedupe([...liveJobs, ...preservedJobs, ...supplement]).filter(job => !isExpired(job));
 
   if (!jobs.length) throw new Error('Live sync produced zero active jobs. Existing dataset left untouched.');
 
-  const sourceTotals = Object.fromEntries(liveResults.map(result => [result.search.key, result.total]));
   const now = new Date().toISOString();
   const payload = {
     generated_at: now,
@@ -248,6 +272,7 @@ async function main() {
     verified_sources: ['잡코리아', '원티드', '리멤버', '직행'],
     sync_interval_minutes: 30,
     source_totals: sourceTotals,
+    partial_failures: failed.length,
     jobs
   };
 
@@ -255,7 +280,7 @@ async function main() {
   appendHistory(jobs, sourceTotals);
   markSaraminLive(now);
   console.log(`Synced ${jobs.length} active jobs at ${now}`);
-  if (failed.length) console.warn(`${failed.length} of ${settled.length} market queries failed; successful markets were still updated.`);
+  if (failed.length) console.warn(`${failed.length} of ${settled.length} market queries failed; last-known-good data was preserved for failed markets.`);
 }
 
 main().catch(error => {
