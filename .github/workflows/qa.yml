@@ -21,7 +21,10 @@ jobs:
         run: node --check api/jobs.js
 
       - name: Check live sync syntax
-        run: node --check scripts/sync-live.js
+        run: |
+          node --check scripts/sync-live.js
+          node --check scripts/mock-saramin-fetch.js
+          node --check scripts/test-sync-partial.js
 
       - name: Validate job datasets
         run: |
@@ -106,3 +109,6 @@ jobs:
 
       - name: Smoke test live sync without secret
         run: node scripts/sync-live.js
+
+      - name: Verify partial live failure preserves last-known-good market
+        run: node scripts/test-sync-partial.js
