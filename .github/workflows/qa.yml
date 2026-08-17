@@ -17,12 +17,11 @@ jobs:
           node --check app.js
           node --check market-trends.js
 
-      - name: Check Vercel function syntax
-        run: node --check api/jobs.js
-
-      - name: Check live sync syntax
+      - name: Check server and automation syntax
         run: |
+          node --check api/jobs.js
           node --check scripts/sync-live.js
+          node --check scripts/validate-production.js
           node --check scripts/mock-saramin-fetch.js
           node --check scripts/test-sync-partial.js
 
@@ -75,6 +74,9 @@ jobs:
           console.log('history points:', history.snapshots.length);
           NODE
 
+      - name: Validate production data integrity
+        run: node scripts/validate-production.js
+
       - name: Validate required frontend hooks
         run: |
           grep -q 'id="searchForm"' index.html
@@ -86,22 +88,22 @@ jobs:
           grep -q 'id="trendSenior"' index.html
           grep -q 'market-trends.js' index.html
           grep -q 'polish.css' index.html
+          grep -q "IS_GITHUB_PAGES" app.js
 
-      - name: Smoke test API handler without external key
+      - name: Smoke test API handler
         run: |
           node - <<'NODE'
           const handler = require('./api/jobs.js');
           const req = { query: { q: '백엔드' } };
-          const headers = {};
           let statusCode = 200;
           const res = {
-            setHeader(k,v){ headers[k]=v; },
+            setHeader(){},
             status(code){ statusCode=code; return this; },
             json(payload){
               if (statusCode !== 200) throw new Error(`status ${statusCode}`);
               if (!Array.isArray(payload.jobs) || payload.jobs.length < 1) throw new Error('no jobs');
-              if (!payload.jobs.some(j => j.source === '사람인')) throw new Error('supplement not merged');
-              console.log('api jobs:', payload.jobs.length);
+              if (!['snapshot','scheduled-live'].includes(payload.mode)) throw new Error(`invalid mode ${payload.mode}`);
+              console.log('api jobs:', payload.jobs.length, 'mode:', payload.mode);
             }
           };
           Promise.resolve(handler(req,res)).catch(err => { console.error(err); process.exit(1); });
