@@ -23,12 +23,28 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
+
       - name: Upload static site
         uses: actions/upload-pages-artifact@v4
         with:
           path: .
+
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+      - name: Smoke test deployed site
+        env:
+          PAGE_URL: ${{ steps.deployment.outputs.page_url }}
+        run: |
+          set -euo pipefail
+          BASE="${PAGE_URL%/}/"
+          for path in "" "app.js" "market-trends.js" "data/jobs.json" "data/sources.json" "og/job-signal.png"; do
+            echo "Checking ${BASE}${path}"
+            curl --fail --location --silent --show-error \
+              --retry 8 --retry-all-errors --retry-delay 3 \
+              "${BASE}${path}" -o /dev/null
+          done
