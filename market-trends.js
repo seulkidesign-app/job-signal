@@ -1,8 +1,10 @@
 (() => {
   const DAY = 24 * 60 * 60 * 1000;
   const WEEK = 7 * DAY;
+  const LIVE_STALE_AFTER = 90 * 60 * 1000;
   let history = { snapshots: [] };
   let datasetMeta = null;
+  let sourceMeta = null;
   let ready = false;
 
   const els = {
@@ -11,7 +13,8 @@
     junior: document.getElementById('trendJunior'),
     senior: document.getElementById('trendSenior'),
     status: document.getElementById('trendStatus'),
-    freshness: document.getElementById('syncFreshness')
+    freshness: document.getElementById('syncFreshness'),
+    platformStrip: document.querySelector('.platform-strip')
   };
 
   function normalize(value = '') {
@@ -93,6 +96,11 @@
     return `${days}일 전 갱신`;
   }
 
+  function isStale(value) {
+    const date = validDate(value);
+    return date ? Date.now() - date.getTime() > LIVE_STALE_AFTER : true;
+  }
+
   function setPending(message = '추세 데이터 축적 중') {
     if (els.count) els.count.textContent = '—';
     if (els.junior) els.junior.textContent = '—';
@@ -107,6 +115,14 @@
     const interval = Number(datasetMeta?.sync_interval_minutes);
     const hasLive = Array.isArray(datasetMeta?.live_sources) && datasetMeta.live_sources.length > 0;
 
+    els.freshness.classList.remove('is-live', 'is-stale');
+
+    if (hasLive && rel && isStale(stamp)) {
+      els.freshness.textContent = `자동 갱신 지연 · ${rel}`;
+      els.freshness.classList.add('is-stale');
+      return;
+    }
+
     if (hasLive && rel) {
       els.freshness.textContent = `${rel}${Number.isFinite(interval) ? ` · ${interval}분 자동 동기화` : ''}`;
       els.freshness.classList.add('is-live');
@@ -115,16 +131,34 @@
 
     if (rel) {
       els.freshness.textContent = `${rel} · 검증 스냅샷`;
-      els.freshness.classList.remove('is-live');
       return;
     }
 
     els.freshness.textContent = '자동 동기화 연결 대기';
-    els.freshness.classList.remove('is-live');
+  }
+
+  function sourceLabel(source) {
+    if (source.status === 'live') return 'LIVE';
+    if (source.status === 'needs_secret') return '연결 대기';
+    if (source.mode === 'verified_snapshot') return '검증';
+    return '준비 중';
+  }
+
+  function renderSourceStates() {
+    if (!els.platformStrip || !Array.isArray(sourceMeta?.sources)) return;
+    const chips = [...els.platformStrip.querySelectorAll('span:not(.platform-label)')];
+    for (const chip of chips) {
+      const source = sourceMeta.sources.find(item => item.name === chip.textContent.trim().split(' · ')[0]);
+      if (!source) continue;
+      chip.textContent = `${source.name} · ${sourceLabel(source)}`;
+      chip.title = source.note || '';
+      chip.dataset.sourceStatus = source.status || source.mode || '';
+    }
   }
 
   function render() {
     if (!ready || !els.title) return;
+    renderSourceStates();
     const key = marketKey(els.title.textContent);
     if (!key) {
       setPending('이 검색어는 추세 비교 준비 중');
@@ -163,13 +197,15 @@
   }
 
   async function load() {
-    const [historyResult, dataResult] = await Promise.allSettled([
+    const [historyResult, dataResult, sourceResult] = await Promise.allSettled([
       fetch('data/history.json', { cache: 'no-store' }).then(res => res.ok ? res.json() : Promise.reject(new Error('history'))),
-      fetch('data/jobs.json', { cache: 'no-store' }).then(res => res.ok ? res.json() : Promise.reject(new Error('jobs')))
+      fetch('data/jobs.json', { cache: 'no-store' }).then(res => res.ok ? res.json() : Promise.reject(new Error('jobs'))),
+      fetch('data/sources.json', { cache: 'no-store' }).then(res => res.ok ? res.json() : Promise.reject(new Error('sources')))
     ]);
 
     if (historyResult.status === 'fulfilled') history = historyResult.value;
     if (dataResult.status === 'fulfilled') datasetMeta = dataResult.value;
+    if (sourceResult.status === 'fulfilled') sourceMeta = sourceResult.value;
     ready = true;
     render();
   }
