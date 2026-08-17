@@ -7,7 +7,8 @@ body {
 .results-heading h2,
 .panel h3,
 .job-list-wrap h3,
-.methodology h3 {
+.methodology h3,
+.momentum h3 {
   letter-spacing: -0.055em;
 }
 
@@ -49,6 +50,71 @@ body {
 }
 .quick-searches button:hover {
   transform: translateY(-1px);
+}
+
+.momentum {
+  margin-top: 22px;
+  border: 1px solid var(--line);
+  background: rgba(255,255,255,.3);
+}
+.momentum-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 22px 24px;
+  border-bottom: 1px solid var(--line);
+}
+.momentum-head h3 {
+  margin: 7px 0 0;
+  font-size: 24px;
+}
+.sync-meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 7px;
+  color: #858a81;
+  font-family: "DM Mono", monospace;
+  font-size: 9px;
+}
+.sync-meta span {
+  padding: 5px 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+}
+.sync-meta .is-live {
+  color: #2b3327;
+  border-color: #a9c985;
+  background: rgba(203,255,139,.3);
+}
+.momentum-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+}
+.momentum-cell {
+  min-height: 150px;
+  padding: 22px 24px;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--line);
+}
+.momentum-cell:last-child { border-right: 0; }
+.momentum-cell > span {
+  color: #71776d;
+  font-size: 12px;
+}
+.momentum-cell strong {
+  margin-top: auto;
+  font-size: clamp(34px, 4vw, 52px);
+  line-height: 1;
+  letter-spacing: -.06em;
+}
+.momentum-cell small {
+  margin-top: 9px;
+  color: #959a91;
+  font-family: "DM Mono", monospace;
+  font-size: 9px;
 }
 
 .job-title {
@@ -110,6 +176,11 @@ body {
 }
 
 @media (max-width: 900px) {
+  .momentum-head { align-items: flex-start; flex-direction: column; }
+  .sync-meta { justify-content: flex-start; }
+  .momentum-grid { grid-template-columns: 1fr; }
+  .momentum-cell { min-height: 120px; border-right: 0; border-bottom: 1px solid var(--line); }
+  .momentum-cell:last-child { border-bottom: 0; }
   .method-grid { grid-template-columns: 1fr; }
   .method-grid > div { min-height: 130px; gap: 20px; }
 }
@@ -119,6 +190,9 @@ body {
   .coverage-note { font-size: 11px; }
   .platform-strip { gap: 6px; }
   .platform-label { width: 100%; margin-bottom: 2px; }
+  .momentum-head { padding: 18px; }
+  .momentum-head h3 { font-size: 21px; }
+  .momentum-cell { padding: 18px; }
   .methodology { margin-top: 52px; }
   .methodology h3 { font-size: 28px; }
   .open-arrow { opacity: 1; }
